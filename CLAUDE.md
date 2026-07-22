@@ -117,6 +117,7 @@ indexes — full content stays in `/docs`.
 | Architecture overview & tech stack | [`docs/architecture`](./docs/architecture) |
 | ADR log (14 records as of Milestone 0.2) | [`docs/adr`](./docs/adr) |
 | Engineering standards | [`docs/engineering`](./docs/engineering) |
+| Engineering journal (chronological milestone log) | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md) |
 | Backend / Frontend / API / Database / Deployment / Security | `docs/{backend,frontend,api,database,deployment,security}` — index stubs only, populated as each area is implemented |
 | Meeting notes | [`docs/meeting-notes`](./docs/meeting-notes) |
 | Roadmap | [`ROADMAP.md`](./ROADMAP.md) |
