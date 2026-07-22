@@ -3,5 +3,8 @@
 Backend service documentation: service structure, business logic
 organization, background jobs, and integrations.
 
-Currently empty — no backend implementation exists yet. Stack choice is
-pending an ADR (see ROADMAP.md Milestone 0.2).
+Currently empty — no backend implementation exists yet. Stack is decided
+(Hono + PostgreSQL + Drizzle, see
+[ADR-0004](../adr/ADR-0004-hono.md), [ADR-0005](../adr/ADR-0005-postgresql.md),
+[ADR-0006](../adr/ADR-0006-drizzle.md)); this folder fills in once
+implementation begins (Milestone 1.0).
