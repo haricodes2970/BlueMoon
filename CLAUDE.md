@@ -7,47 +7,57 @@ or the roadmap changes. Do not let this file go stale.
 ## Project Overview
 
 BlueMoon is a long-term communication platform. The first product built on
-top of it is **PINChat**.
+top of it is **PINChat** — a PIN-based, low-friction, privacy-first
+messaging product (see [Product Blueprint](./docs/product/product-blueprint.md)).
 
-Source-of-truth product documentation (Literature Survey, Product Blueprint,
-Product Vision & Philosophy, User Personas & User Research, User Journey &
-User Flow Specification) is intended to live under [`docs/product`](./docs/product).
-As of this writing those documents have not yet been supplied to the
-repository — stubs exist marking them `TBD`. Implementation decisions must
-not contradict these documents once they are added.
+Source-of-truth product documentation lives under
+[`docs/product`](./docs/product): Literature Survey, Product Blueprint,
+Product Vision & Philosophy, User Personas & User Research, and User
+Journey & User Flow Specification. All five exist as **Draft v1**
+(authored 2026-07-22), cross-linked, and pending founder review —
+see the Known Limitations section below before treating them as final.
+Implementation decisions must not contradict these documents.
 
 ## Current Phase
 
-**Phase 0 — Repository Initialization**
+**Phase 0 — Engineering Foundation**
 
-The repository is being bootstrapped as a production-grade engineering
-project: documentation structure, ADR system, engineering standards, and
-repository conventions. No application code has been written yet.
+Documentation, architecture direction, and technology decisions are
+being established before feature implementation begins. No application
+code has been written yet.
 
 ## Current Milestone
 
-Milestone 0.1 — Repository scaffold complete (docs structure, root
-standards files, ADR system, CLAUDE.md/ROADMAP.md/CHANGELOG.md).
+**Milestone 0.2 — Engineering Foundation** (in progress)
+
+Product docs drafted and cross-linked, architecture direction documented
+(principles/boundaries, not implementation), and the full technology
+stack recorded as ADRs. Next milestone (0.3) is tooling/CI setup,
+followed by 1.0 (PINChat MVP implementation).
 
 ## Active Tasks
 
-- [ ] Receive and incorporate actual product documentation (literature
-      survey, blueprint, vision, personas, user journeys) into
-      `docs/product`
-- [ ] Define initial system architecture (ADR) once product docs land
+- [ ] Founder review of all five Draft v1 product documents
+- [ ] Founder review of Architecture Overview and Tech Stack Decision
+- [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
+- [ ] Begin Milestone 0.3 (tooling & CI) once 0.2 is reviewed/accepted
 
 ## Completed Tasks
 
-- [x] Initialize git repository
-- [x] Create root standards files (README, LICENSE, CODE_OF_CONDUCT,
-      CONTRIBUTING, SECURITY, .gitignore)
-- [x] Create `/docs` structure (architecture, product, engineering,
-      security, backend, frontend, api, database, deployment, adr,
-      meeting-notes)
-- [x] Establish ADR system and record ADR-0001 (project structure)
-- [x] Create CLAUDE.md, ROADMAP.md, CHANGELOG.md
-- [x] Establish engineering coding standards document
+**Milestone 0.1 — Repository Scaffold**
+- [x] Initialize git repository; root standards files; `/docs` structure
+- [x] ADR system established; ADR-0001 (project/documentation structure)
+- [x] CLAUDE.md, ROADMAP.md, CHANGELOG.md; coding standards document
+
+**Milestone 0.2 — Engineering Foundation**
+- [x] Drafted and cross-linked all five product documents
+- [x] Authored `docs/architecture/Architecture-Overview.md` (principles,
+      system boundaries, future modules, design philosophy)
+- [x] Authored `docs/architecture/Tech-Stack-Decision.md`
+- [x] Recorded ADR-0002 through ADR-0014 (full technology stack: monorepo,
+      Next.js, Hono, PostgreSQL, Drizzle, Tailwind, shadcn, Zustand,
+      TanStack Query, Cloudflare R2, Railway, Vercel, TypeScript)
 
 ## Engineering Principles
 
@@ -60,11 +70,39 @@ standards files, ADR system, CLAUDE.md/ROADMAP.md/CHANGELOG.md).
 - Every significant technical decision gets an ADR.
 - Never contradict existing product documentation.
 
+## Architecture Goals
+
+(Full detail: [Architecture Overview](./docs/architecture/Architecture-Overview.md))
+
+- Session/PIN as the unit of access — no account required to start a
+  conversation; identity is additive, never a precondition.
+- Privacy by default — end-to-end encryption, minimal metadata
+  retention, no tradeoffs against this to ship faster.
+- Ephemeral-first data lifecycle — session data is cleanly discardable;
+  persistence (contacts) is an explicit opt-in, not the default.
+- Platform, not app — the session/identity/transport/storage core must
+  outlive PINChat and support future BlueMoon products without a rewrite.
+- Boring where it doesn't matter, careful where it does — rigor is
+  proportional to how core a component is to trust/privacy guarantees.
+
 ## Coding Standards
 
 Full detail in [`docs/engineering/coding-standards.md`](./docs/engineering/coding-standards.md).
 Summary: Strict TypeScript, ESLint, Prettier, Husky + lint-staged,
 Commitlint, feature-first Clean Architecture, SOLID.
+
+## Documentation Index
+
+| Area | Path |
+|---|---|
+| Product (source of truth) | [`docs/product`](./docs/product) |
+| Architecture overview & tech stack | [`docs/architecture`](./docs/architecture) |
+| ADR log (14 records as of Milestone 0.2) | [`docs/adr`](./docs/adr) |
+| Engineering standards | [`docs/engineering`](./docs/engineering) |
+| Backend / Frontend / API / Database / Deployment / Security | `docs/{backend,frontend,api,database,deployment,security}` — index stubs only, populated as each area is implemented |
+| Meeting notes | [`docs/meeting-notes`](./docs/meeting-notes) |
+| Roadmap | [`ROADMAP.md`](./ROADMAP.md) |
+| Changelog | [`CHANGELOG.md`](./CHANGELOG.md) |
 
 ## Repository Conventions
 
@@ -80,26 +118,35 @@ Commitlint, feature-first Clean Architecture, SOLID.
 - Organized by topic under `docs/<area>/`.
 - Each doc area should have a short index/README when it contains more
   than one file.
+- Cross-link related documents (product docs, architecture docs, and
+  ADRs reference each other directly — see each document's "Related
+  Documents" section).
 
 ## Important Decisions
 
 See [`docs/adr`](./docs/adr) for the authoritative log. As of this
-writing: ADR-0001 (initial repository/documentation structure).
+writing: ADR-0001 (repository/documentation structure) through ADR-0014
+(TypeScript), covering the full technology stack for PINChat.
 
 ## Known Limitations
 
-- Product documentation (literature survey, blueprint, vision, personas,
-  user journeys) has not yet been added to the repository — placeholders
-  only. No architecture or implementation decisions should be treated as
-  final until these land.
-- No application code exists yet (by design — see Initial Task in
-  bootstrap instructions).
+- All five product documents and both architecture documents are
+  **Draft v1, authored by the engineering assistant from a stack/product
+  description, not yet reviewed or confirmed by the founder.** Treat as
+  directionally correct, not final.
+- The three personas in `docs/product/user-personas-and-research.md`
+  are explicitly hypothesis-driven, not validated by real user research.
+- No application code exists yet (by design — Milestone 0.2 is
+  documentation/architecture only, not implementation).
+- License is still a proprietary placeholder pending a final decision.
 
 ## Pending Discussions
 
-- Final license choice (currently a proprietary placeholder in `LICENSE`).
-- Tech stack selection for PINChat backend/frontend (blocked on product
-  docs and an architecture ADR).
+- Founder review/revision of all Draft v1 documents.
+- Final license choice.
+- Whether the ephemeral-session data store should be separate from
+  PostgreSQL (flagged in ADR-0005's Future Implications, not yet
+  decided).
 
 ## Future Roadmap
 
