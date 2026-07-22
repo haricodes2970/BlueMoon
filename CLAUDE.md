@@ -18,6 +18,19 @@ Journey & User Flow Specification. All five exist as **Draft v1**
 see the Known Limitations section below before treating them as final.
 Implementation decisions must not contradict these documents.
 
+## Product Documentation Policy
+
+The documents under `/docs/product/` are the canonical product
+specification.
+
+Claude Code must never rewrite, replace, or substantially modify these
+documents unless explicitly instructed.
+
+Engineering must conform to product documentation.
+
+If implementation appears to conflict with product documentation, raise
+the conflict instead of silently changing the documents.
+
 ## Current Phase
 
 **Phase 0 — Engineering Foundation**
