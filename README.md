@@ -12,6 +12,20 @@ before application code is written.
 🚧 Pre-implementation — see [ROADMAP.md](./ROADMAP.md) for current phase and
 progress.
 
+## Quick Navigation
+
+Root-level index files for fast orientation (human or AI agent) before
+diving into `/docs`:
+
+| File | Purpose |
+|---|---|
+| [BLUEPRINT.md](./BLUEPRINT.md) | High-level product overview |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System overview, links to detailed docs |
+| [DECISIONS.md](./DECISIONS.md) | Index of all ADRs |
+| [TODO.md](./TODO.md) | Short-term engineering tasks |
+| [CLAUDE.md](./CLAUDE.md) | Persistent engineering memory |
+| [ROADMAP.md](./ROADMAP.md) | Milestone tracking |
+
 ## Documentation
 
 All product, architecture, and engineering documentation lives under
