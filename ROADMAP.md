@@ -1,74 +1,85 @@
 # Roadmap
 
-## Current Phase
+Tracked as milestones. Each milestone has a status, scope, and
+completion criteria. Do not mark a milestone Complete until its
+completion criteria are fully met.
 
-**Phase 0 — Repository Initialization**
+## Milestone 0.1 — Repository Scaffold
 
-Establishing the repository as a production-grade engineering project
-before any application code is written.
-
-## Milestones
-
-### Milestone 0.1 — Repository Scaffold (in progress)
+**Status: Complete**
 
 - [x] Git repository initialized
 - [x] Root standards files (README, LICENSE, CODE_OF_CONDUCT,
       CONTRIBUTING, SECURITY, .gitignore)
-- [x] `/docs` directory structure
+- [x] `/docs` directory structure (11 areas)
 - [x] ADR system + ADR-0001
 - [x] CLAUDE.md / ROADMAP.md / CHANGELOG.md
 - [x] Engineering coding standards document
-- [ ] Product documentation ingested into `docs/product`
 
-### Milestone 0.2 — Architecture Definition (not started)
+## Milestone 0.2 — Engineering Foundation
 
-- [ ] System architecture ADR for PINChat
-- [ ] Backend framework/stack decision (ADR)
-- [ ] Frontend framework/stack decision (ADR)
-- [ ] Database choice (ADR)
-- [ ] Authentication strategy (ADR)
-- [ ] Deployment target decision (ADR)
+**Status: In Progress**
 
-### Milestone 0.3 — Tooling & CI (not started)
+- [x] Draft + cross-link all five product documents (literature survey,
+      blueprint, vision & philosophy, personas, user journeys)
+- [x] `docs/architecture/Architecture-Overview.md` (principles, system
+      boundaries, future modules, design philosophy — no implementation)
+- [x] `docs/architecture/Tech-Stack-Decision.md`
+- [x] ADR-0002 through ADR-0014 (full technology stack)
+- [x] CLAUDE.md updated for current milestone
+- [x] ROADMAP.md converted to milestone tracking (this file)
+- [ ] Documentation consistency review (contradictions/improvements)
+- [ ] Founder review and sign-off on all Draft v1 documents
 
-- [ ] TypeScript strict config
+**Completion criteria:** all product and architecture documents reviewed
+and accepted by the founder (or revised until they are); no open
+consistency issues from the review pass.
+
+## Milestone 0.3 — Tooling & CI
+
+**Status: Not Started**
+
+- [ ] Monorepo workspace setup (per ADR-0002)
+- [ ] TypeScript strict config (per ADR-0014)
 - [ ] ESLint + Prettier
 - [ ] Husky + lint-staged
 - [ ] Commitlint (Conventional Commits enforcement)
 - [ ] Test runner setup
-- [ ] CI pipeline
+- [ ] CI pipeline (build/lint/test on PR)
+- [ ] Initial deploy pipelines to Railway (ADR-0012) and Vercel (ADR-0013)
 
-### Milestone 1.0 — PINChat MVP (not started)
+**Completion criteria:** a contributor can clone the repo, install, run
+lint/tests/build, and see a CI check pass on a trivial PR — before any
+feature code exists.
 
-- [ ] Blocked on Milestones 0.2 and 0.3
+## Milestone 1.0 — PINChat MVP
 
-## Completed Work
+**Status: Blocked** (depends on 0.2 and 0.3)
 
-- Repository scaffold: documentation structure, root standards files,
-  ADR system, engineering memory files.
+- [ ] Session/PIN issuance and join flow (Journey 1)
+- [ ] Group session lifecycle (Journey 2)
+- [ ] Real-time messaging within a session
+- [ ] Basic media sharing (Cloudflare R2, per ADR-0011)
+- [ ] End-to-end encryption of message content
+- [ ] Contact-save / persistence flow
+- [ ] Session expiry
 
-## Remaining Work
+**Completion criteria:** both user journeys in
+[User Journey & Flow Specification](./docs/product/user-journey-and-flow-specification.md)
+are implemented end-to-end and match the V1 scope in
+[Product Blueprint](./docs/product/product-blueprint.md).
 
-- Ingest actual product documentation (literature survey, blueprint,
-  vision, personas, user journeys).
-- Define and record architecture decisions for PINChat.
-- Stand up tooling and CI.
-- Build PINChat MVP.
+## Progress Summary
 
-## Blocked Work
-
-- Architecture Definition (0.2) is blocked on product documentation
-  being added to `docs/product` — implementation decisions must not
-  contradict source-of-truth product docs that do not yet exist in the
-  repo.
-
-## Progress
-
-**Phase 0: ~40% complete** (scaffold done, product docs and tooling
-pending).
+| Milestone | Status | Progress |
+|---|---|---|
+| 0.1 Repository Scaffold | Complete | 100% |
+| 0.2 Engineering Foundation | In Progress | ~85% |
+| 0.3 Tooling & CI | Not Started | 0% |
+| 1.0 PINChat MVP | Blocked | 0% |
 
 ## Next Objective
 
-Receive product documentation (literature survey, product blueprint,
-vision & philosophy, personas, user journeys) and incorporate into
-`docs/product`, replacing the current stubs.
+Complete the documentation consistency review for Milestone 0.2, then
+route all Draft v1 documents to the founder for review before starting
+Milestone 0.3.
