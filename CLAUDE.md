@@ -93,6 +93,11 @@ Commitlint, feature-first Clean Architecture, SOLID.
 
 ## Documentation Index
 
+Root navigation files (quick orientation for humans and AI agents):
+[BLUEPRINT.md](./BLUEPRINT.md), [ARCHITECTURE.md](./ARCHITECTURE.md),
+[DECISIONS.md](./DECISIONS.md), [TODO.md](./TODO.md). These are thin
+indexes — full content stays in `/docs`.
+
 | Area | Path |
 |---|---|
 | Product (source of truth) | [`docs/product`](./docs/product) |
