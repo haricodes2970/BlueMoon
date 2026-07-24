@@ -1,0 +1,10 @@
+# Default owner for everything not matched below.
+# Replace @haricodes2970 / add teams as the project grows.
+* @haricodes2970
+
+# Product documentation requires explicit founder sign-off.
+/docs/product/ @haricodes2970
+
+# Architecture decisions.
+/docs/adr/ @haricodes2970
+/docs/architecture/ @haricodes2970
