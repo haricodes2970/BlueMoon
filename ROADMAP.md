@@ -18,7 +18,7 @@ completion criteria are fully met.
 
 ## Milestone 0.2 — Engineering Foundation
 
-**Status: In Progress**
+**Status: In Progress** (blocked — see below)
 
 - [x] Draft + cross-link all five product documents (literature survey,
       blueprint, vision & philosophy, personas, user journeys)
@@ -28,29 +28,44 @@ completion criteria are fully met.
 - [x] ADR-0002 through ADR-0014 (full technology stack)
 - [x] CLAUDE.md updated for current milestone
 - [x] ROADMAP.md converted to milestone tracking (this file)
-- [ ] Documentation consistency review (contradictions/improvements)
-- [ ] Founder review and sign-off on all Draft v1 documents
+- [x] Documentation consistency review (contradictions/improvements)
+- [ ] **Replace draft product documents with the founder's real,
+      approved documents** — the drafts were assistant-authored from a
+      product description, not the actual specification; this is now
+      the primary blocker for closing 0.2 (see Product Documentation
+      Policy in [CLAUDE.md](./CLAUDE.md))
+- [ ] Founder review and sign-off on architecture documents
 
-**Completion criteria:** all product and architecture documents reviewed
-and accepted by the founder (or revised until they are); no open
-consistency issues from the review pass.
+**Completion criteria:** `docs/product/` contains the founder's actual
+approved documents (versioned from 1.0.0), and architecture documents
+are reviewed/accepted.
 
-## Milestone 0.3 — Tooling & CI
+## Milestone 0.3 — Engineering Environment
 
-**Status: Not Started**
+**Status: In Progress**
 
-- [ ] Monorepo workspace setup (per ADR-0002)
-- [ ] TypeScript strict config (per ADR-0014)
-- [ ] ESLint + Prettier
-- [ ] Husky + lint-staged
-- [ ] Commitlint (Conventional Commits enforcement)
-- [ ] Test runner setup
-- [ ] CI pipeline (build/lint/test on PR)
-- [ ] Initial deploy pipelines to Railway (ADR-0012) and Vercel (ADR-0013)
+- [x] pnpm workspace (`apps/`, `packages/`, `tooling/`) — recommended
+      structure confirmed before generating
+- [x] `apps/web`, `apps/server` placeholders (no feature code)
+- [x] `packages/{ui,config,types,utils,database,auth}` placeholders
+- [x] `tooling/{typescript-config,eslint-config,prettier-config}`
+- [x] Root `tsconfig.json` project references
+- [x] ESLint, Prettier, EditorConfig (strict)
+- [x] Husky + lint-staged + Commitlint
+- [x] Turborepo build system + ADR-0015; pnpm workspaces + ADR-0016
+- [x] Environment variable strategy + per-app `.env.example` (dev/test/prod)
+- [x] `.github/`: issue templates, PR template, CODEOWNERS, Dependabot
+- [x] CI workflow skeleton: lint, type-check, test, build, docs-validate
+      (no deployment job yet, by design)
+- [ ] `pnpm install` executed and verified to succeed in a real environment
+- [ ] CI workflow verified green on an actual PR
+- [ ] Deploy pipelines to Railway (ADR-0012) and Vercel (ADR-0013) —
+      deliberately deferred past this milestone
 
-**Completion criteria:** a contributor can clone the repo, install, run
-lint/tests/build, and see a CI check pass on a trivial PR — before any
-feature code exists.
+**Completion criteria:** a contributor can clone the repo, run
+`pnpm install`, and see lint/type-check/test/build succeed locally and
+in CI on a trivial PR — before any feature code exists. Not yet
+verified in this environment (no Node/pnpm execution performed).
 
 ## Milestone 1.0 — PINChat MVP
 
@@ -74,12 +89,13 @@ are implemented end-to-end and match the V1 scope in
 | Milestone | Status | Progress |
 |---|---|---|
 | 0.1 Repository Scaffold | Complete | 100% |
-| 0.2 Engineering Foundation | In Progress | ~85% |
-| 0.3 Tooling & CI | Not Started | 0% |
+| 0.2 Engineering Foundation | In Progress — blocked on real product docs | ~85% |
+| 0.3 Engineering Environment | In Progress — unverified | ~85% |
 | 1.0 PINChat MVP | Blocked | 0% |
 
 ## Next Objective
 
-Complete the documentation consistency review for Milestone 0.2, then
-route all Draft v1 documents to the founder for review before starting
-Milestone 0.3.
+Receive the founder's actual approved product documents and replace the
+current drafts in `docs/product/` (versioned 1.0.0). In parallel, run
+`pnpm install` and confirm the workspace/CI actually work end to end.
+
