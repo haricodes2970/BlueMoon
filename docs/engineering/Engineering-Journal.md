@@ -26,6 +26,45 @@ Next
 
 ---
 
+## 2026-07-24
+
+Milestone 0.3
+
+Completed
+- pnpm workspace scaffold: `apps/{web,server}`, `packages/{ui,config,
+  types,utils,database,auth}`, `tooling/{typescript-config,eslint-config,
+  prettier-config}` — structure and config only, no feature code
+- Root TypeScript project references, strict ESLint, Prettier,
+  EditorConfig
+- Husky pre-commit/commit-msg hooks, lint-staged, Commitlint
+- Turborepo task pipeline; environment variable strategy doc +
+  per-app `.env.example`
+- `.github/` scaffold: issue/PR templates, CODEOWNERS, Dependabot, CI
+  workflow (lint/type-check/test/build/docs-validate, no deploy job)
+- Added Engineering Journal itself (this file)
+
+Decisions
+- Turborepo (ADR-0015)
+- pnpm workspaces (ADR-0016)
+
+Problems
+- Workspace has not actually been installed or run — `pnpm install`
+  not executed in this environment, CI not yet verified against a real
+  PR. Treat all tooling as unverified until confirmed.
+- Milestone 0.2 still blocked: product docs under `docs/product/` are
+  assistant-authored drafts, not the founder's real specification —
+  corrected by the founder (2026-07-23) but real documents not yet
+  received.
+
+Next
+- Get `pnpm install` run and CI verified green
+- Receive and swap in real product documents (highest priority)
+- Deploy pipelines to Railway/Vercel (deliberately deferred, not part
+  of 0.3)
+- Begin Milestone 1.0 once 0.2 and 0.3 are both actually closed out
+
+---
+
 ## 2026-07-22
 
 Milestone 0.1
