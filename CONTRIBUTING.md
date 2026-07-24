@@ -58,6 +58,18 @@ Once application code exists, the repository enforces:
 See [`docs/engineering/coding-standards.md`](./docs/engineering/coding-standards.md)
 for details.
 
+## Quality Gates
+
+Every pull request must pass, via CI (`.github/workflows/ci.yml`):
+
+- Lint (`pnpm lint`)
+- Type check (`pnpm type-check`)
+- Tests (`pnpm test`)
+- Format check (`pnpm format:check`)
+
+These also run locally pre-commit via Husky + lint-staged, and
+commit messages are enforced via Commitlint (`commit-msg` hook).
+
 ## Pull Requests
 
 - Reference the related ADR or roadmap item where applicable.
