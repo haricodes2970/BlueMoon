@@ -1,0 +1,17 @@
+{
+  "name": "@bluemoon/server",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"apps/server: no application code yet\"",
+    "build": "echo \"apps/server: no application code yet\"",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@bluemoon/eslint-config": "workspace:*",
+    "@bluemoon/typescript-config": "workspace:*",
+    "typescript": "^5.0.0"
+  }
+}
