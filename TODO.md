@@ -5,27 +5,32 @@ counterpart to [ROADMAP.md](./ROADMAP.md) (milestones) and CLAUDE.md's
 Active Tasks (persistent memory). When a task here is done, check it off
 and remove it on the next pass rather than letting completed items pile up.
 
-## Now (Milestone 0.2 close-out)
+## Now (top priority, blocking multiple milestones)
 
-- [ ] Founder review of all five Draft v1 product documents
-- [ ] Founder review of Architecture Overview and Tech Stack Decision
+- [ ] Replace Draft v1 product documents in `docs/product/` with the
+      founder's real, approved documents (blocks Milestone 0.2 close-out)
+- [ ] Run `pnpm install` and verify the workspace installs cleanly;
+      confirm CI passes on an actual PR (blocks Milestone 0.3 close-out)
+- [ ] Founder review and sign-off on all five Milestone 0.4 architecture
+      documents (System/Package/Dependency-Rules/Backend/Frontend)
+
+## Next (before Milestone 1.0 implementation starts)
+
+- [ ] Add automated dependency-rule enforcement — `eslint-plugin-boundaries`
+      or equivalent in `tooling/eslint-config`, configured against
+      [Dependency-Rules.md](./docs/architecture/Dependency-Rules.md)
+      (see ADR-0019 Future Implications)
+- [ ] Select a test runner (open item since Milestone 0.3)
 - [ ] Resolve open question: separate store for ephemeral session data
       vs. PostgreSQL (see ADR-0005 Future Implications)
 - [ ] Final license decision (currently a proprietary placeholder)
-
-## Next (Milestone 0.3 — Tooling & CI)
-
-- [ ] Monorepo workspace setup (per ADR-0002)
-- [ ] TypeScript strict config, ESLint, Prettier
-- [ ] Husky + lint-staged + Commitlint
-- [ ] Test runner setup
-- [ ] CI pipeline (build/lint/test on PR)
-- [ ] Initial deploy pipelines to Railway and Vercel
+- [ ] Deploy pipelines to Railway and Vercel (deliberately deferred)
 
 ## Later
 
 - [ ] Validate the three hypothesis personas with real user research
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.3 is complete
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2, 0.3, and 0.4 are all
+      actually closed out
 
 ## See Also
 
