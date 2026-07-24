@@ -25,7 +25,7 @@ the optional ephemeral-session → persisted-contact upgrade path, and
 any future durable-identity primitives.
 
 **Does not own:** HTTP route handlers, request validation, UI — those
-are `apps/server` concerns that *use* this package.
+are `apps/server` concerns that _use_ this package.
 
 **Why shared:** every future BlueMoon product (Communities, Voice,
 Video) needs the same "session/PIN as the unit of access" primitive
@@ -39,7 +39,7 @@ Duplicating it per product would violate "platform, not app."
 for PostgreSQL (per [ADR-0005](../adr/ADR-0005-postgresql.md),
 [ADR-0006](../adr/ADR-0006-drizzle.md)).
 
-**Does not own:** business rules about *when* a row should be written
+**Does not own:** business rules about _when_ a row should be written
 (that's a `apps/server` service-layer concern, see
 [Backend-Architecture.md](./Backend-Architecture.md)) — this package
 provides the mechanism, not the policy.
@@ -68,7 +68,7 @@ side effects and no business meaning on their own (e.g. string
 formatting, date helpers, ID generation helpers).
 
 **Does not own:** anything that encodes a BlueMoon-specific business
-rule. A function that decides *when* a session expires is domain logic
+rule. A function that decides _when_ a session expires is domain logic
 (belongs in `apps/server`'s domain layer or `packages/auth`), not a
 "utility," even though it might look like a small pure function.
 This distinction is the main scope-creep risk flagged in
@@ -88,7 +88,7 @@ other visual building blocks with no PINChat-specific business logic
 embedded.
 
 **Does not own:** PINChat-specific composed views (a "session join
-screen" is a feature in `apps/web`, built *from* `packages/ui`
+screen" is a feature in `apps/web`, built _from_ `packages/ui`
 primitives, not itself part of `packages/ui`). See
 [Frontend-Architecture.md](./Frontend-Architecture.md#features).
 
@@ -102,8 +102,8 @@ configuration, consumed by both `apps/web` and `apps/server` (see
 [environment-strategy.md](../engineering/environment-strategy.md)).
 
 **Does not own:** the actual `.env.example` files (those stay per-app,
-since each app has a different variable set) — this package owns *how*
-variables are parsed and validated, not *which* variables exist for a
+since each app has a different variable set) — this package owns _how_
+variables are parsed and validated, not _which_ variables exist for a
 given app.
 
 **Why shared:** consistent, type-safe config loading/validation

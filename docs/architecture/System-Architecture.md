@@ -17,7 +17,7 @@ matrix.
 **Modular monolith, with Clean Architecture layering inside each app,
 and a platform/product split at the workspace level.**
 
-- *Modular monolith*, not microservices: `apps/web` and `apps/server`
+- _Modular monolith_, not microservices: `apps/web` and `apps/server`
   are each a single deployable unit today, internally organized into
   clearly bounded modules. This matches "boring where it doesn't
   matter" from
@@ -25,11 +25,11 @@ and a platform/product split at the workspace level.**
   microservice operational overhead isn't justified at current scale,
   but internal modularity keeps a future service extraction possible
   without a rewrite.
-- *Clean Architecture layering* inside `apps/server` (see
+- _Clean Architecture layering_ inside `apps/server` (see
   [Backend-Architecture.md](./Backend-Architecture.md)): dependencies
   point inward toward domain logic, which has no framework or
   infrastructure dependencies.
-- *Platform/product split*: shared, product-agnostic capabilities
+- _Platform/product split_: shared, product-agnostic capabilities
   (auth/session primitives, database access, types, utils, UI
   primitives, config) live in `packages/*`. Product-specific behavior
   (PINChat's flows today; Communities, Voice, Video, AI, Storage in the
@@ -78,21 +78,21 @@ Six packages exist; no new package is added without a documented
 justification (circular-dependency risk, unclear ownership, and
 workspace sprawl are the costs of adding packages casually):
 
-| Package | Owns |
-|---|---|
-| `packages/auth` | Session/PIN/identity primitives |
-| `packages/database` | Schema, migrations, query layer |
-| `packages/types` | Shared TypeScript contracts |
-| `packages/utils` | Framework-agnostic pure functions |
-| `packages/ui` | Shared UI component primitives |
-| `packages/config` | Environment/config parsing |
+| Package             | Owns                              |
+| ------------------- | --------------------------------- |
+| `packages/auth`     | Session/PIN/identity primitives   |
+| `packages/database` | Schema, migrations, query layer   |
+| `packages/types`    | Shared TypeScript contracts       |
+| `packages/utils`    | Framework-agnostic pure functions |
+| `packages/ui`       | Shared UI component primitives    |
+| `packages/config`   | Environment/config parsing        |
 
 ## Application Boundaries
 
-| App | Responsibility | Depends on |
-|---|---|---|
-| `apps/web` | PINChat frontend — presentation only, no source of truth | `packages/ui`, `packages/types`, `packages/config`, `packages/utils` |
-| `apps/server` | PINChat backend — owns business logic and persistence | `packages/auth`, `packages/database`, `packages/types`, `packages/config`, `packages/utils` |
+| App           | Responsibility                                           | Depends on                                                                                  |
+| ------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `apps/web`    | PINChat frontend — presentation only, no source of truth | `packages/ui`, `packages/types`, `packages/config`, `packages/utils`                        |
+| `apps/server` | PINChat backend — owns business logic and persistence    | `packages/auth`, `packages/database`, `packages/types`, `packages/config`, `packages/utils` |
 
 Future product apps (e.g. a Communities or Voice backend) would depend
 on the same platform packages (`auth`, `database`, `types`, `utils`,

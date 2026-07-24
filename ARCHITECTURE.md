@@ -22,17 +22,17 @@ Full detail: [Architecture Overview](./docs/architecture/Architecture-Overview.m
 
 ## Stack (see DECISIONS.md for the ADR behind each)
 
-| Layer | Choice |
-|---|---|
-| Repo structure | Monorepo |
-| Language | TypeScript (strict) |
-| Web client | Next.js |
-| Backend API | Hono |
-| Database | PostgreSQL + Drizzle |
-| Styling / components | Tailwind + shadcn/ui |
-| Client state | Zustand (local) + TanStack Query (server) |
-| Object storage | Cloudflare R2 |
-| Hosting | Railway (backend/DB) + Vercel (frontend) |
+| Layer                | Choice                                    |
+| -------------------- | ----------------------------------------- |
+| Repo structure       | Monorepo                                  |
+| Language             | TypeScript (strict)                       |
+| Web client           | Next.js                                   |
+| Backend API          | Hono                                      |
+| Database             | PostgreSQL + Drizzle                      |
+| Styling / components | Tailwind + shadcn/ui                      |
+| Client state         | Zustand (local) + TanStack Query (server) |
+| Object storage       | Cloudflare R2                             |
+| Hosting              | Railway (backend/DB) + Vercel (frontend)  |
 
 Full detail: [Tech-Stack-Decision.md](./docs/architecture/Tech-Stack-Decision.md)
 

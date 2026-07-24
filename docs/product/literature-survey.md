@@ -27,7 +27,7 @@ trust each other; not designed for low-friction first contact.
 ### Community/group platforms (Discord, Slack)
 
 Built around persistent, named communities rather than 1:1 or small
-ad-hoc groups. Onboarding into a *new* community is easy; starting a
+ad-hoc groups. Onboarding into a _new_ community is easy; starting a
 private, ephemeral, one-off exchange with a specific person is not the
 core use case.
 

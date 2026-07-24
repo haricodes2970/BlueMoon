@@ -4,5 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "main": "index.json",
-  "files": ["index.json"]
+  "files": [
+    "index.json"
+  ]
 }

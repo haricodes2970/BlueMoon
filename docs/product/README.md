@@ -3,13 +3,13 @@
 This folder is the source of truth for BlueMoon/PINChat product intent.
 Implementation decisions must never contradict these documents.
 
-| Document | Status |
-|---|---|
-| [Literature Survey](./literature-survey.md) | Draft v1 — pending founder review |
-| [Product Blueprint](./product-blueprint.md) | Draft v1 — pending founder review |
-| [Product Vision & Philosophy](./product-vision-and-philosophy.md) | Draft v1 — pending founder review |
-| [User Personas & User Research](./user-personas-and-research.md) | Draft v1 — hypothesis personas, pending validation |
-| [User Journey & User Flow Specification](./user-journey-and-flow-specification.md) | Draft v1 — pending founder review |
+| Document                                                                           | Status                                             |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [Literature Survey](./literature-survey.md)                                        | Draft v1 — pending founder review                  |
+| [Product Blueprint](./product-blueprint.md)                                        | Draft v1 — pending founder review                  |
+| [Product Vision & Philosophy](./product-vision-and-philosophy.md)                  | Draft v1 — pending founder review                  |
+| [User Personas & User Research](./user-personas-and-research.md)                   | Draft v1 — hypothesis personas, pending validation |
+| [User Journey & User Flow Specification](./user-journey-and-flow-specification.md) | Draft v1 — pending founder review                  |
 
 ## Reading Order
 

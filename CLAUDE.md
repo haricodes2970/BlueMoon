@@ -72,11 +72,13 @@ entities implemented — architecture-only, per this milestone's scope.
 ## Completed Tasks
 
 **Milestone 0.1 — Repository Scaffold**
+
 - [x] Initialize git repository; root standards files; `/docs` structure
 - [x] ADR system established; ADR-0001 (project/documentation structure)
 - [x] CLAUDE.md, ROADMAP.md, CHANGELOG.md; coding standards document
 
 **Milestone 0.2 — Engineering Foundation**
+
 - [x] Drafted and cross-linked all five product documents (later found
       to be assistant-authored drafts, not real specs — see Product
       Documentation Policy and Known Limitations)
@@ -90,6 +92,7 @@ entities implemented — architecture-only, per this milestone's scope.
       DECISIONS.md, TODO.md) and Product Documentation Policy
 
 **Milestone 0.3 — Engineering Environment**
+
 - [x] pnpm workspace (`pnpm-workspace.yaml`, root `package.json`)
 - [x] `apps/web`, `apps/server` placeholders (no feature code)
 - [x] `packages/{ui,config,types,utils,database,auth}` placeholders
@@ -106,6 +109,7 @@ entities implemented — architecture-only, per this milestone's scope.
 - [x] Engineering Journal added (`docs/engineering/Engineering-Journal.md`)
 
 **Milestone 0.4 — Core Architecture**
+
 - [x] `docs/architecture/System-Architecture.md` (style, dependency
       direction, boundaries, diagram, validation/risks)
 - [x] `docs/architecture/Package-Architecture.md` (exact responsibility
@@ -160,22 +164,22 @@ Root navigation files (quick orientation for humans and AI agents):
 [DECISIONS.md](./DECISIONS.md), [TODO.md](./TODO.md). These are thin
 indexes — full content stays in `/docs`.
 
-| Area | Path |
-|---|---|
-| Product (source of truth) | [`docs/product`](./docs/product) |
-| Architecture overview & tech stack | [`docs/architecture`](./docs/architecture) |
-| ADR log (19 records as of Milestone 0.4) | [`docs/adr`](./docs/adr) |
-| System / Package / Dependency / Backend / Frontend architecture | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture) |
-| Engineering standards | [`docs/engineering`](./docs/engineering) |
-| Engineering journal (chronological milestone log) | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md) |
-| Environment variable strategy | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md) |
-| Backend / Frontend / API / Database / Deployment / Security | `docs/{backend,frontend,api,database,deployment,security}` — index stubs only, populated as each area is implemented |
-| Meeting notes | [`docs/meeting-notes`](./docs/meeting-notes) |
-| Workspace apps | [`apps/`](./apps) — `web` (frontend), `server` (backend), both placeholders |
-| Workspace packages | [`packages/`](./packages) — `ui`, `config`, `types`, `utils`, `database`, `auth`, all placeholders |
-| Shared tooling | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config` |
-| Roadmap | [`ROADMAP.md`](./ROADMAP.md) |
-| Changelog | [`CHANGELOG.md`](./CHANGELOG.md) |
+| Area                                                            | Path                                                                                                                 |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Product (source of truth)                                       | [`docs/product`](./docs/product)                                                                                     |
+| Architecture overview & tech stack                              | [`docs/architecture`](./docs/architecture)                                                                           |
+| ADR log (19 records as of Milestone 0.4)                        | [`docs/adr`](./docs/adr)                                                                                             |
+| System / Package / Dependency / Backend / Frontend architecture | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)        |
+| Engineering standards                                           | [`docs/engineering`](./docs/engineering)                                                                             |
+| Engineering journal (chronological milestone log)               | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md)                               |
+| Environment variable strategy                                   | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md)                             |
+| Backend / Frontend / API / Database / Deployment / Security     | `docs/{backend,frontend,api,database,deployment,security}` — index stubs only, populated as each area is implemented |
+| Meeting notes                                                   | [`docs/meeting-notes`](./docs/meeting-notes)                                                                         |
+| Workspace apps                                                  | [`apps/`](./apps) — `web` (frontend), `server` (backend), both placeholders                                          |
+| Workspace packages                                              | [`packages/`](./packages) — `ui`, `config`, `types`, `utils`, `database`, `auth`, all placeholders                   |
+| Shared tooling                                                  | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config`                                    |
+| Roadmap                                                         | [`ROADMAP.md`](./ROADMAP.md)                                                                                         |
+| Changelog                                                       | [`CHANGELOG.md`](./CHANGELOG.md)                                                                                     |
 
 ## Repository Conventions
 

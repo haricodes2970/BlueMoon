@@ -19,6 +19,7 @@ and [Privacy-conscious Priya](./user-personas-and-research.md#persona-2--privacy
    does, the session expires and the conversation is not retained.
 
 **Edge cases to design for (implementation detail deferred):**
+
 - PIN reuse/collision handling
 - One-sided contact-save request (declined or ignored)
 - Session expiry while a message is mid-send
@@ -38,6 +39,7 @@ Serves [Coordinator Alex](./user-personas-and-research.md#persona-3--coordinator
    does not persist as a standing group chat by default.
 
 **Edge cases to design for (implementation detail deferred):**
+
 - Maximum group size
 - Late joiners after session start
 - Partial contact-save (some pairs save, others don't)

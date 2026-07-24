@@ -35,16 +35,16 @@ rules across the workspace. Every rule here follows from
 
 `✓` = allowed, `—` = forbidden. Rows import columns.
 
-| From \ To | auth | database | types | utils | ui | config | apps/web | apps/server |
-|---|---|---|---|---|---|---|---|---|
-| **auth** | — | ✓ (see note) | ✓ | ✓ | — | — | — | — |
-| **database** | — | — | ✓ | ✓ | — | — | — | — |
-| **types** | — | — | — | ✓ (rare) | — | — | — | — |
-| **utils** | — | — | ✓ (rare) | — | — | — | — | — |
-| **ui** | — | — | ✓ | ✓ | — | — | — | — |
-| **config** | — | — | ✓ | ✓ | — | — | — | — |
-| **apps/web** | — | — | ✓ | ✓ | ✓ | ✓ | — | — |
-| **apps/server** | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | — |
+| From \ To       | auth | database     | types    | utils    | ui  | config | apps/web | apps/server |
+| --------------- | ---- | ------------ | -------- | -------- | --- | ------ | -------- | ----------- |
+| **auth**        | —    | ✓ (see note) | ✓        | ✓        | —   | —      | —        | —           |
+| **database**    | —    | —            | ✓        | ✓        | —   | —      | —        | —           |
+| **types**       | —    | —            | —        | ✓ (rare) | —   | —      | —        | —           |
+| **utils**       | —    | —            | ✓ (rare) | —        | —   | —      | —        | —           |
+| **ui**          | —    | —            | ✓        | ✓        | —   | —      | —        | —           |
+| **config**      | —    | —            | ✓        | ✓        | —   | —      | —        | —           |
+| **apps/web**    | —    | —            | ✓        | ✓        | ✓   | ✓      | —        | —           |
+| **apps/server** | ✓    | ✓            | ✓        | ✓        | —   | ✓      | —        | —           |
 
 Note: `packages/auth` may depend on `packages/database` if session
 persistence requires it (e.g. storing active sessions) — this is the

@@ -41,7 +41,7 @@ assumed defaults for BlueMoon/PINChat; deviations require an ADR.
   `format-date.ts`).
 - `PascalCase` for React component files (`SessionCard.tsx`), matching
   the component's exported name.
-- Suffix files by role where it disambiguates:  `*.service.ts`,
+- Suffix files by role where it disambiguates: `*.service.ts`,
   `*.repository.ts`, `*.controller.ts`, `*.test.ts`, `*.types.ts`.
 - One primary export per file where practical — a file's name should
   tell you what it exports without opening it.
@@ -116,9 +116,9 @@ Each group separated by a blank line; alphabetized within a group.
 ## Comments
 
 - Default to no comments — well-named identifiers should carry meaning.
-- Write a comment only when the *why* isn't obvious from the code: a
+- Write a comment only when the _why_ isn't obvious from the code: a
   non-obvious constraint, a workaround for a specific bug, a subtle
-  invariant. Never comment *what* the code does.
+  invariant. Never comment _what_ the code does.
 - No commented-out code committed — delete it; git history preserves it.
 
 ## Documentation

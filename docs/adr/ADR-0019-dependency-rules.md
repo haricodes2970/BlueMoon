@@ -6,7 +6,7 @@
 ## Context
 
 ADR-0017 (overall architecture) and ADR-0018 (package boundaries)
-establish *what* the pieces are; without explicit import rules,
+establish _what_ the pieces are; without explicit import rules,
 nothing prevents those boundaries from being violated in practice (e.g.
 `packages/ui` quietly importing from `packages/database`, or `domain/`
 importing a Hono type). Boundaries that aren't enforced tend to erode.

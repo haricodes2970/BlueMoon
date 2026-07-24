@@ -6,11 +6,11 @@
 
 Three environments, each with its own variable set:
 
-| Environment | Purpose | Where variables live |
-|---|---|---|
-| Development | Local machine | `.env.local` (per app, gitignored, copied from `.env.example`) |
-| Testing | CI / automated tests | CI secrets store (GitHub Actions secrets), never committed |
-| Production | Deployed (Railway backend, Vercel frontend) | Platform-native secret/env stores (Railway variables, Vercel environment variables) |
+| Environment | Purpose                                     | Where variables live                                                                |
+| ----------- | ------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Development | Local machine                               | `.env.local` (per app, gitignored, copied from `.env.example`)                      |
+| Testing     | CI / automated tests                        | CI secrets store (GitHub Actions secrets), never committed                          |
+| Production  | Deployed (Railway backend, Vercel frontend) | Platform-native secret/env stores (Railway variables, Vercel environment variables) |
 
 ## Rule: No Secrets in the Repository
 

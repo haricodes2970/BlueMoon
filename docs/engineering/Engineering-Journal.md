@@ -31,6 +31,7 @@ Next
 Milestone 0.4
 
 Completed
+
 - System-Architecture.md: modular monolith + Clean Architecture +
   platform/product split, dependency direction, system diagram,
   validation pass (circular deps, scalability, testability, future
@@ -53,12 +54,14 @@ Completed
   ADR-0019 (dependency rules)
 
 Decisions
+
 - Modular monolith + Clean Architecture + platform/product split
   (ADR-0017)
 - Six fixed packages, justification required to add more (ADR-0018)
 - Enforced import matrix, currently review-only (ADR-0019)
 
 Problems
+
 - No automated enforcement of dependency rules yet — nothing fails CI
   if a future PR violates the import matrix. Flagged as a pre-1.0
   requirement, not yet scheduled with a milestone.
@@ -70,6 +73,7 @@ Problems
   explicit instruction, not because those blockers cleared.
 
 Next
+
 - Founder review/sign-off on all five Milestone 0.4 architecture docs
 - Add eslint-plugin-boundaries (or equivalent) before Milestone 1.0
   implementation starts
@@ -83,9 +87,10 @@ Next
 Milestone 0.3
 
 Completed
+
 - pnpm workspace scaffold: `apps/{web,server}`, `packages/{ui,config,
-  types,utils,database,auth}`, `tooling/{typescript-config,eslint-config,
-  prettier-config}` — structure and config only, no feature code
+types,utils,database,auth}`, `tooling/{typescript-config,eslint-config,
+prettier-config}` — structure and config only, no feature code
 - Root TypeScript project references, strict ESLint, Prettier,
   EditorConfig
 - Husky pre-commit/commit-msg hooks, lint-staged, Commitlint
@@ -96,10 +101,12 @@ Completed
 - Added Engineering Journal itself (this file)
 
 Decisions
+
 - Turborepo (ADR-0015)
 - pnpm workspaces (ADR-0016)
 
 Problems
+
 - Workspace has not actually been installed or run — `pnpm install`
   not executed in this environment, CI not yet verified against a real
   PR. Treat all tooling as unverified until confirmed.
@@ -109,6 +116,7 @@ Problems
   received.
 
 Next
+
 - Get `pnpm install` run and CI verified green
 - Receive and swap in real product documents (highest priority)
 - Deploy pipelines to Railway/Vercel (deliberately deferred, not part
@@ -122,6 +130,7 @@ Next
 Milestone 0.1
 
 Completed
+
 - Repository scaffold (root standards files, .gitignore)
 - `/docs` directory structure (11 areas)
 - ADR system + ADR-0001 (project/documentation structure)
@@ -129,12 +138,15 @@ Completed
 - Engineering coding standards document
 
 Decisions
+
 - ADR-0001: docs/adr system, CLAUDE.md as persistent memory
 
 Problems
+
 - None
 
 Next
+
 - Draft product documentation
 - Define architecture direction and tech stack
 
@@ -145,6 +157,7 @@ Next
 Milestone 0.2
 
 Completed
+
 - Architecture overview (principles, boundaries, future modules)
 - Tech stack decision summary
 - ADR-0002 through ADR-0014 (full technology stack)
@@ -154,6 +167,7 @@ Completed
   against silent AI rewrites)
 
 Decisions
+
 - Monorepo (ADR-0002)
 - Next.js (ADR-0003)
 - Hono (ADR-0004)
@@ -169,6 +183,7 @@ Decisions
 - TypeScript (ADR-0014)
 
 Problems
+
 - Ephemeral session data store vs. PostgreSQL — unresolved (see
   ADR-0005 Future Implications)
 - Product docs were initially drafted from an assistant-authored guess
@@ -177,6 +192,7 @@ Problems
   can be marked complete
 
 Next
+
 - Replace draft product docs with approved v1.0.0 documents
 - Founder review of architecture docs
 - Begin Milestone 0.3 (tooling & CI)

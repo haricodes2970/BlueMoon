@@ -114,13 +114,13 @@ are implemented end-to-end and match the V1 scope in
 
 ## Progress Summary
 
-| Milestone | Status | Progress |
-|---|---|---|
-| 0.1 Repository Scaffold | Complete | 100% |
-| 0.2 Engineering Foundation | In Progress — blocked on real product docs | ~85% |
-| 0.3 Engineering Environment | In Progress — unverified | ~85% |
-| 0.4 Core Architecture | In Progress — pending review | ~90% |
-| 1.0 PINChat MVP | Blocked | 0% |
+| Milestone                   | Status                                     | Progress |
+| --------------------------- | ------------------------------------------ | -------- |
+| 0.1 Repository Scaffold     | Complete                                   | 100%     |
+| 0.2 Engineering Foundation  | In Progress — blocked on real product docs | ~85%     |
+| 0.3 Engineering Environment | In Progress — unverified                   | ~85%     |
+| 0.4 Core Architecture       | In Progress — pending review               | ~90%     |
+| 1.0 PINChat MVP             | Blocked                                    | 0%       |
 
 ## Next Objective
 
@@ -128,4 +128,3 @@ Receive the founder's actual approved product documents and replace the
 current drafts in `docs/product/` (versioned 1.0.0). In parallel, run
 `pnpm install` and confirm the workspace/CI actually work end to end,
 and get founder sign-off on the Milestone 0.4 architecture documents.
-
