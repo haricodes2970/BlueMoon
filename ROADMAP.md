@@ -67,9 +67,37 @@ are reviewed/accepted.
 in CI on a trivial PR — before any feature code exists. Not yet
 verified in this environment (no Node/pnpm execution performed).
 
+## Milestone 0.4 — Core Architecture
+
+**Status: In Progress**
+
+- [x] `docs/architecture/System-Architecture.md` — style, dependency
+      direction, boundaries, system diagram, validation/risks
+- [x] `docs/architecture/Package-Architecture.md` — exact responsibility
+      per package, "add a package" justification process
+- [x] `docs/architecture/Dependency-Rules.md` — import matrix, layer
+      rules
+- [x] `docs/architecture/Backend-Architecture.md` — routes → events
+      layers, diagram
+- [x] `docs/architecture/Frontend-Architecture.md` — app → assets
+      layers, diagram
+- [x] Expanded coding standards (naming, barrel exports, import order,
+      error handling, logging, comments, testing)
+- [x] ADR-0017 (overall architecture), ADR-0018 (package boundaries),
+      ADR-0019 (dependency rules)
+- [ ] Founder review and sign-off on all five architecture documents
+- [ ] Automated dependency-rule enforcement (ESLint boundaries rule) —
+      deliberately deferred past this milestone, tracked for before
+      Milestone 1.0 implementation begins (see ADR-0019)
+
+**Completion criteria:** all five architecture documents and three new
+ADRs reviewed/accepted by the founder. Automated enforcement is not a
+blocker for closing 0.4 but must land before Milestone 1.0 writes real
+code across these boundaries.
+
 ## Milestone 1.0 — PINChat MVP
 
-**Status: Blocked** (depends on 0.2 and 0.3)
+**Status: Blocked** (depends on 0.2, 0.3, and 0.4)
 
 - [ ] Session/PIN issuance and join flow (Journey 1)
 - [ ] Group session lifecycle (Journey 2)
@@ -91,11 +119,13 @@ are implemented end-to-end and match the V1 scope in
 | 0.1 Repository Scaffold | Complete | 100% |
 | 0.2 Engineering Foundation | In Progress — blocked on real product docs | ~85% |
 | 0.3 Engineering Environment | In Progress — unverified | ~85% |
+| 0.4 Core Architecture | In Progress — pending review | ~90% |
 | 1.0 PINChat MVP | Blocked | 0% |
 
 ## Next Objective
 
 Receive the founder's actual approved product documents and replace the
 current drafts in `docs/product/` (versioned 1.0.0). In parallel, run
-`pnpm install` and confirm the workspace/CI actually work end to end.
+`pnpm install` and confirm the workspace/CI actually work end to end,
+and get founder sign-off on the Milestone 0.4 architecture documents.
 
