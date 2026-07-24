@@ -47,6 +47,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/`: issue templates, PR template, `CODEOWNERS`,
   `dependabot.yml`, CI workflow skeleton (lint, type-check, test,
   build, docs-validate — no deployment job).
+- `docs/architecture/System-Architecture.md`: overall style (modular
+  monolith, Clean Architecture, platform/product split), dependency
+  direction, boundaries, system diagram, validation/risks pass.
+- `docs/architecture/Package-Architecture.md`: exact responsibility for
+  each of the six `packages/*`, package-addition justification process.
+- `docs/architecture/Dependency-Rules.md`: full import matrix, backend/
+  frontend layer rules, enforcement status.
+- `docs/architecture/Backend-Architecture.md`: `apps/server` layers
+  (routes through events) with diagram.
+- `docs/architecture/Frontend-Architecture.md`: `apps/web` layers (app
+  router through assets) with diagram.
+- ADR-0017 (overall architecture), ADR-0018 (package boundaries),
+  ADR-0019 (dependency rules).
 
 ### Changed
 
@@ -64,7 +77,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   docs; Milestone 0.3 (renamed from "Tooling & CI" to "Engineering
   Environment") tracked with unverified-install caveat.
 - `CONTRIBUTING.md` gained a Quality Gates section.
-- `DECISIONS.md` updated with ADR-0015 and ADR-0016.
+- `DECISIONS.md` updated with ADR-0015 through ADR-0019.
+- `docs/engineering/coding-standards.md` expanded: folder/file naming,
+  barrel export policy, import ordering, error handling, logging,
+  comments, and testing conventions mapped to the new architecture
+  layers.
+- All six `packages/*/README.md` linked to their
+  `Package-Architecture.md` entry.
+- `CLAUDE.md`, `ROADMAP.md`, and the Engineering Journal updated for
+  Milestone 0.4.
 
 ### Fixed
 
