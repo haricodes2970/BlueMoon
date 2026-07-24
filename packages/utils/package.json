@@ -8,10 +8,17 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
+  "dependencies": {
+    "@bluemoon/types": "workspace:*",
+    "nanoid": "^5.0.9",
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0"
+  },
   "devDependencies": {
     "@bluemoon/eslint-config": "workspace:*",
     "eslint": "^9.15.0",
     "@bluemoon/typescript-config": "workspace:*",
+    "@types/node": "^22.10.0",
     "typescript": "^5.0.0"
   }
 }
