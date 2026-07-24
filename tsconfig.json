@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "apps/web" },
+    { "path": "apps/server" },
+    { "path": "packages/ui" },
+    { "path": "packages/config" },
+    { "path": "packages/types" },
+    { "path": "packages/utils" },
+    { "path": "packages/database" },
+    { "path": "packages/auth" }
+  ]
+}
