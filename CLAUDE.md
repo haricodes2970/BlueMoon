@@ -41,25 +41,33 @@ code has been written yet.
 
 ## Current Milestone
 
-**Milestone 0.3 — Engineering Environment** (in progress)
+**Milestone 0.4 — Core Architecture** (in progress)
 
-Workspace scaffolded as a pnpm + Turborepo monorepo (`apps/`,
-`packages/`, `tooling/`), tooling configured (TypeScript project
-references, ESLint, Prettier, Husky, lint-staged, Commitlint,
-EditorConfig), CI workflow skeleton added, `.github/` scaffold added.
-No application code — structure and tooling only.
+Designed the architecture every future feature must follow: overall
+style (modular monolith, Clean Architecture, platform/product split),
+exact `packages/*` responsibilities, the enforced dependency/import
+matrix, backend layer structure (`routes` through `events`), frontend
+layer structure (`app` through `assets`), and expanded coding standards
+(naming, barrel exports, import order, error handling, logging,
+comments). Three new ADRs (0017–0019). No messaging, auth, or database
+entities implemented — architecture-only, per this milestone's scope.
 
 ## Active Tasks
 
 - [ ] Replace Draft v1 product documents with the founder's actual
       approved documents (see Known Limitations — current drafts were
-      assistant-authored, not real product specs)
-- [ ] Founder review of Architecture Overview and Tech Stack Decision
+      assistant-authored, not real product specs) — **still the
+      top-priority blocker, carried over from Milestone 0.2**
+- [ ] Founder review of Architecture Overview, Tech Stack Decision, and
+      all five new Milestone 0.4 architecture documents
+- [ ] Add automated dependency-rule enforcement (`eslint-plugin-boundaries`
+      or equivalent) — currently code-review-only, see ADR-0019
 - [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
 - [ ] Run `pnpm install` to activate Husky hooks and verify the
       workspace installs cleanly (not yet executed/verified)
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.3 is verified
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2, 0.3, and 0.4 are
+      all verified/reviewed
 
 ## Completed Tasks
 
@@ -96,6 +104,22 @@ No application code — structure and tooling only.
 - [x] CI workflow skeleton: lint, type-check, test, build, docs-validate
       (no deployment job)
 - [x] Engineering Journal added (`docs/engineering/Engineering-Journal.md`)
+
+**Milestone 0.4 — Core Architecture**
+- [x] `docs/architecture/System-Architecture.md` (style, dependency
+      direction, boundaries, diagram, validation/risks)
+- [x] `docs/architecture/Package-Architecture.md` (exact responsibility
+      per package + "add a package" justification process)
+- [x] `docs/architecture/Dependency-Rules.md` (import matrix, layer
+      rules, enforcement status)
+- [x] `docs/architecture/Backend-Architecture.md` (routes → events
+      layers, diagram)
+- [x] `docs/architecture/Frontend-Architecture.md` (app → assets
+      layers, diagram)
+- [x] Expanded `docs/engineering/coding-standards.md` (naming, barrel
+      exports, import order, error handling, logging, comments, testing)
+- [x] ADR-0017 (overall architecture), ADR-0018 (package boundaries),
+      ADR-0019 (dependency rules)
 
 ## Engineering Principles
 
@@ -140,7 +164,8 @@ indexes — full content stays in `/docs`.
 |---|---|
 | Product (source of truth) | [`docs/product`](./docs/product) |
 | Architecture overview & tech stack | [`docs/architecture`](./docs/architecture) |
-| ADR log (16 records as of Milestone 0.3) | [`docs/adr`](./docs/adr) |
+| ADR log (19 records as of Milestone 0.4) | [`docs/adr`](./docs/adr) |
+| System / Package / Dependency / Backend / Frontend architecture | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture) |
 | Engineering standards | [`docs/engineering`](./docs/engineering) |
 | Engineering journal (chronological milestone log) | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md) |
 | Environment variable strategy | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md) |
@@ -174,9 +199,9 @@ indexes — full content stays in `/docs`.
 
 See [`docs/adr`](./docs/adr) for the authoritative log, and
 [`DECISIONS.md`](./DECISIONS.md) for the root-level index. As of this
-writing: ADR-0001 through ADR-0016, covering repository structure,
-the full technology stack, and build tooling (Turborepo, pnpm
-workspaces) for PINChat.
+writing: ADR-0001 through ADR-0019, covering repository structure, the
+full technology stack, build tooling, and core architecture (overall
+style, package boundaries, dependency rules) for PINChat.
 
 ## Known Limitations
 
@@ -197,6 +222,13 @@ workspaces) for PINChat.
   been executed in this environment) — configs are believed correct
   but unverified. Husky hooks are inactive until install runs.
 - License is still a proprietary placeholder pending a final decision.
+- Dependency rules (ADR-0019, [Dependency-Rules.md](./docs/architecture/Dependency-Rules.md))
+  are documented but not automated — nothing currently fails CI if a
+  future PR violates them. Code review is the only enforcement today.
+- Architecture documented in Milestone 0.4 has no application code
+  exercising it yet — the layer split (e.g. `domain/` with zero
+  infrastructure deps) is a design intent, unverified against real
+  implementation.
 
 ## Pending Discussions
 
@@ -208,6 +240,8 @@ workspaces) for PINChat.
   decided).
 - Verifying the pnpm workspace installs and CI passes once real
   dependencies are added.
+- Adding automated dependency-boundary enforcement before Milestone 1.0
+  implementation begins (see ADR-0019 Future Implications).
 
 ## Future Roadmap
 
