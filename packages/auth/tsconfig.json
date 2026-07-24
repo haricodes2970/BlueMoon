@@ -1,0 +1,5 @@
+{
+  "extends": "@bluemoon/typescript-config/node.json",
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}
