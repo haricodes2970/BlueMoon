@@ -5,3 +5,5 @@ Shared TypeScript types/contracts used across `apps/web` and
 **Placeholder — no types defined yet.** Keeping these in a shared
 package is the reason ADR-0002 (monorepo) and ADR-0014 (TypeScript
 everywhere) were chosen together.
+
+Full responsibility definition: [Package-Architecture.md](../../docs/architecture/Package-Architecture.md#packagestypes).
