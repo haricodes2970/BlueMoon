@@ -26,6 +26,9 @@ the point.
 | [0014](./docs/adr/ADR-0014-typescript.md) | TypeScript Across the Stack | Accepted |
 | [0015](./docs/adr/ADR-0015-turborepo.md) | Turborepo for Monorepo Task Orchestration | Accepted |
 | [0016](./docs/adr/ADR-0016-pnpm-workspaces.md) | pnpm Workspaces as the Package Manager | Accepted |
+| [0017](./docs/adr/ADR-0017-overall-architecture.md) | Overall Architecture — Modular Monolith, Clean Architecture, Platform/Product Split | Accepted |
+| [0018](./docs/adr/ADR-0018-package-boundaries.md) | Package Boundaries — Six Fixed Packages | Accepted |
+| [0019](./docs/adr/ADR-0019-dependency-rules.md) | Dependency Rules — Enforced Import Direction | Accepted |
 
 ## Adding a New ADR
 
