@@ -1,0 +1,5 @@
+{
+  "root": true,
+  "extends": ["@bluemoon/eslint-config"],
+  "ignorePatterns": ["apps/**", "packages/**", "tooling/**"]
+}
