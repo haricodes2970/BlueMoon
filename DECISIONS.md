@@ -24,6 +24,8 @@ the point.
 | [0012](./docs/adr/ADR-0012-railway.md) | Railway for Backend/Database Hosting | Accepted |
 | [0013](./docs/adr/ADR-0013-vercel.md) | Vercel for Frontend Hosting | Accepted |
 | [0014](./docs/adr/ADR-0014-typescript.md) | TypeScript Across the Stack | Accepted |
+| [0015](./docs/adr/ADR-0015-turborepo.md) | Turborepo for Monorepo Task Orchestration | Accepted |
+| [0016](./docs/adr/ADR-0016-pnpm-workspaces.md) | pnpm Workspaces as the Package Manager | Accepted |
 
 ## Adding a New ADR
 
