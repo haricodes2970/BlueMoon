@@ -41,20 +41,25 @@ code has been written yet.
 
 ## Current Milestone
 
-**Milestone 0.2 — Engineering Foundation** (in progress)
+**Milestone 0.3 — Engineering Environment** (in progress)
 
-Product docs drafted and cross-linked, architecture direction documented
-(principles/boundaries, not implementation), and the full technology
-stack recorded as ADRs. Next milestone (0.3) is tooling/CI setup,
-followed by 1.0 (PINChat MVP implementation).
+Workspace scaffolded as a pnpm + Turborepo monorepo (`apps/`,
+`packages/`, `tooling/`), tooling configured (TypeScript project
+references, ESLint, Prettier, Husky, lint-staged, Commitlint,
+EditorConfig), CI workflow skeleton added, `.github/` scaffold added.
+No application code — structure and tooling only.
 
 ## Active Tasks
 
-- [ ] Founder review of all five Draft v1 product documents
+- [ ] Replace Draft v1 product documents with the founder's actual
+      approved documents (see Known Limitations — current drafts were
+      assistant-authored, not real product specs)
 - [ ] Founder review of Architecture Overview and Tech Stack Decision
 - [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
-- [ ] Begin Milestone 0.3 (tooling & CI) once 0.2 is reviewed/accepted
+- [ ] Run `pnpm install` to activate Husky hooks and verify the
+      workspace installs cleanly (not yet executed/verified)
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.3 is verified
 
 ## Completed Tasks
 
@@ -64,13 +69,33 @@ followed by 1.0 (PINChat MVP implementation).
 - [x] CLAUDE.md, ROADMAP.md, CHANGELOG.md; coding standards document
 
 **Milestone 0.2 — Engineering Foundation**
-- [x] Drafted and cross-linked all five product documents
+- [x] Drafted and cross-linked all five product documents (later found
+      to be assistant-authored drafts, not real specs — see Product
+      Documentation Policy and Known Limitations)
 - [x] Authored `docs/architecture/Architecture-Overview.md` (principles,
       system boundaries, future modules, design philosophy)
 - [x] Authored `docs/architecture/Tech-Stack-Decision.md`
 - [x] Recorded ADR-0002 through ADR-0014 (full technology stack: monorepo,
       Next.js, Hono, PostgreSQL, Drizzle, Tailwind, shadcn, Zustand,
       TanStack Query, Cloudflare R2, Railway, Vercel, TypeScript)
+- [x] Added root navigation files (BLUEPRINT.md, ARCHITECTURE.md,
+      DECISIONS.md, TODO.md) and Product Documentation Policy
+
+**Milestone 0.3 — Engineering Environment**
+- [x] pnpm workspace (`pnpm-workspace.yaml`, root `package.json`)
+- [x] `apps/web`, `apps/server` placeholders (no feature code)
+- [x] `packages/{ui,config,types,utils,database,auth}` placeholders
+- [x] `tooling/{typescript-config,eslint-config,prettier-config}` shared configs
+- [x] Root `tsconfig.json` with project references
+- [x] Root ESLint, Prettier wiring, `.editorconfig`
+- [x] Husky pre-commit/commit-msg hooks + lint-staged + Commitlint
+- [x] Turborepo (`turbo.json`) + ADR-0015; pnpm workspaces + ADR-0016
+- [x] Environment variable strategy doc + per-app `.env.example`
+- [x] `.github/` scaffold: issue templates, PR template, CODEOWNERS,
+      Dependabot
+- [x] CI workflow skeleton: lint, type-check, test, build, docs-validate
+      (no deployment job)
+- [x] Engineering Journal added (`docs/engineering/Engineering-Journal.md`)
 
 ## Engineering Principles
 
@@ -115,11 +140,15 @@ indexes — full content stays in `/docs`.
 |---|---|
 | Product (source of truth) | [`docs/product`](./docs/product) |
 | Architecture overview & tech stack | [`docs/architecture`](./docs/architecture) |
-| ADR log (14 records as of Milestone 0.2) | [`docs/adr`](./docs/adr) |
+| ADR log (16 records as of Milestone 0.3) | [`docs/adr`](./docs/adr) |
 | Engineering standards | [`docs/engineering`](./docs/engineering) |
 | Engineering journal (chronological milestone log) | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md) |
+| Environment variable strategy | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md) |
 | Backend / Frontend / API / Database / Deployment / Security | `docs/{backend,frontend,api,database,deployment,security}` — index stubs only, populated as each area is implemented |
 | Meeting notes | [`docs/meeting-notes`](./docs/meeting-notes) |
+| Workspace apps | [`apps/`](./apps) — `web` (frontend), `server` (backend), both placeholders |
+| Workspace packages | [`packages/`](./packages) — `ui`, `config`, `types`, `utils`, `database`, `auth`, all placeholders |
+| Shared tooling | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config` |
 | Roadmap | [`ROADMAP.md`](./ROADMAP.md) |
 | Changelog | [`CHANGELOG.md`](./CHANGELOG.md) |
 
@@ -143,29 +172,42 @@ indexes — full content stays in `/docs`.
 
 ## Important Decisions
 
-See [`docs/adr`](./docs/adr) for the authoritative log. As of this
-writing: ADR-0001 (repository/documentation structure) through ADR-0014
-(TypeScript), covering the full technology stack for PINChat.
+See [`docs/adr`](./docs/adr) for the authoritative log, and
+[`DECISIONS.md`](./DECISIONS.md) for the root-level index. As of this
+writing: ADR-0001 through ADR-0016, covering repository structure,
+the full technology stack, and build tooling (Turborepo, pnpm
+workspaces) for PINChat.
 
 ## Known Limitations
 
-- All five product documents and both architecture documents are
-  **Draft v1, authored by the engineering assistant from a stack/product
-  description, not yet reviewed or confirmed by the founder.** Treat as
-  directionally correct, not final.
+- **The five documents under `docs/product/` were drafted by the
+  engineering assistant from a stack/product description — they are
+  not the founder's real product specification.** This was flagged as
+  an error by the founder (see Engineering Journal, Milestone 0.2
+  entry). They remain in place only until replaced with the actual
+  approved documents; per the Product Documentation Policy above, they
+  must not be rewritten or summarized further by Claude Code in the
+  meantime.
 - The three personas in `docs/product/user-personas-and-research.md`
-  are explicitly hypothesis-driven, not validated by real user research.
-- No application code exists yet (by design — Milestone 0.2 is
-  documentation/architecture only, not implementation).
+  are explicitly hypothesis-driven, not validated by real user research
+  — doubly so given the above.
+- No application code exists yet (by design). `apps/*`, `packages/*`,
+  and `tooling/*` are structure and config only as of Milestone 0.3.
+- The workspace has not been installed or run (`pnpm install` has not
+  been executed in this environment) — configs are believed correct
+  but unverified. Husky hooks are inactive until install runs.
 - License is still a proprietary placeholder pending a final decision.
 
 ## Pending Discussions
 
-- Founder review/revision of all Draft v1 documents.
+- Receiving and swapping in the founder's real product documents
+  (highest priority — current drafts are placeholders, not spec).
 - Final license choice.
 - Whether the ephemeral-session data store should be separate from
   PostgreSQL (flagged in ADR-0005's Future Implications, not yet
   decided).
+- Verifying the pnpm workspace installs and CI passes once real
+  dependencies are added.
 
 ## Future Roadmap
 
