@@ -1,0 +1,6 @@
+{
+  "ignorePatterns": [
+    { "pattern": "^https?://" }
+  ],
+  "retryOn429": true
+}
