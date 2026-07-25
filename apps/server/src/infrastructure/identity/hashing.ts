@@ -1,6 +1,6 @@
 import * as argon2 from "argon2";
 
-/** Hashes a credential (never store plaintext). Argon2id per ADR-0024. */
+/** Hashes a credential (never store plaintext). Argon2id -- see docs/security/Authentication.md. */
 export async function hashCredential(raw: string): Promise<string> {
   return argon2.hash(raw, { type: argon2.argon2id });
 }
