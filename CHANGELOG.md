@@ -60,6 +60,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   router through assets) with diagram.
 - ADR-0017 (overall architecture), ADR-0018 (package boundaries),
   ADR-0019 (dependency rules).
+- `packages/types`: `Environment`, `ApiResponse<T>`, typed `ErrorCode`/
+  `ApiErrorBody`, `HealthCheckResponse`.
+- `packages/utils`: pino-based `createLogger`/`withRequestId`, date/id
+  helpers, `Result<T, E>`, `AppError` class hierarchy.
+- `packages/config`: Zod `baseEnvSchema`/`extendEnvSchema`, fail-fast
+  `loadEnv()`.
+- `packages/database`: Drizzle + `postgres.js` connection, migration
+  config, seed entry point, `checkDatabaseConnection()` — no business
+  schema.
+- `packages/auth`: placeholder exports (`createSession`/`joinSession`/
+  `expireSession`, all throw "not implemented").
+- `apps/server`: working Hono app — `@hono/zod-openapi`, request-ID
+  middleware, centralized error handler, `GET /health`,
+  `GET /openapi.json`, `GET /docs`.
+- `apps/web`: working Next.js App Router app — Tailwind + shadcn/ui
+  token setup and one primitive (`Button`), TanStack Query provider.
+- ADR-0020 (logging), ADR-0021 (configuration), ADR-0022 (error
+  handling).
 
 ### Changed
 
@@ -86,9 +104,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Package-Architecture.md` entry.
 - `CLAUDE.md`, `ROADMAP.md`, and the Engineering Journal updated for
   Milestone 0.4.
+- `CLAUDE.md`, `ROADMAP.md`, `DECISIONS.md`, and the Engineering
+  Journal updated for Milestone 0.5; Milestone 0.3 marked Complete now
+  that `pnpm install`/lint/build have actually been verified.
 
 ### Fixed
 
 - Stale "stack choice pending" notes in `docs/backend`, `docs/frontend`,
   `docs/api`, `docs/database`, `docs/deployment` READMEs, contradicting
   the ADRs that had already decided the stack.
+- ESLint 9 flat-config migration across the whole workspace (tooling
+  shipped legacy `.eslintrc` format; `eslint` was never an actual
+  installed dependency anywhere).
+- Shared packages (`types`, `utils`, `config`, `database`, `auth`)
+  compiled to `dist/` with `package.json` `main`/`types` pointing
+  there, so `node` can resolve them in a real production start (they
+  previously pointed straight at raw `.ts` source).
+- `"type": "module"` added consistently across packages, fixing
+  ESM/CJS named-export interop under tsx/Node; every package's
+  `eslint.config.js` renamed to `.cjs` since that change broke
+  ESLint's config-file resolution.
+- `eslint-config-next`'s parser doesn't satisfy typescript-eslint's
+  parser-services check (crashed `consistent-type-imports`) and
+  doesn't track type-only-import usage correctly (false "unused"
+  errors) — reordered the Next config so the shared base wins; disabled
+  Next's redundant build-time ESLint pass in favor of the dedicated
+  `pnpm lint` gate.
+- `packages/ui` given a minimal empty placeholder so the workspace-wide
+  `type-check`/`build` gates pass (it remains out of scope otherwise).
