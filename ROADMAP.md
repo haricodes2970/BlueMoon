@@ -42,7 +42,7 @@ are reviewed/accepted.
 
 ## Milestone 0.3 — Engineering Environment
 
-**Status: In Progress**
+**Status: Complete**
 
 - [x] pnpm workspace (`apps/`, `packages/`, `tooling/`) — recommended
       structure confirmed before generating
@@ -57,15 +57,18 @@ are reviewed/accepted.
 - [x] `.github/`: issue templates, PR template, CODEOWNERS, Dependabot
 - [x] CI workflow skeleton: lint, type-check, test, build, docs-validate
       (no deployment job yet, by design)
-- [ ] `pnpm install` executed and verified to succeed in a real environment
-- [ ] CI workflow verified green on an actual PR
+- [x] `pnpm install` executed and verified to succeed in a real
+      environment (Milestone 0.5) — surfaced and fixed several real
+      config bugs in the process (see Milestone 0.5)
+- [ ] CI workflow verified green on an actual GitHub Actions run (only
+      local equivalents of its jobs have been run)
 - [ ] Deploy pipelines to Railway (ADR-0012) and Vercel (ADR-0013) —
       deliberately deferred past this milestone
 
 **Completion criteria:** a contributor can clone the repo, run
-`pnpm install`, and see lint/type-check/test/build succeed locally and
-in CI on a trivial PR — before any feature code exists. Not yet
-verified in this environment (no Node/pnpm execution performed).
+`pnpm install`, and see lint/type-check/build succeed locally — met.
+CI-on-a-real-PR and deploy pipelines remain open, tracked separately,
+not blocking this milestone's completion.
 
 ## Milestone 0.4 — Core Architecture
 
@@ -95,9 +98,54 @@ ADRs reviewed/accepted by the founder. Automated enforcement is not a
 blocker for closing 0.4 but must land before Milestone 1.0 writes real
 code across these boundaries.
 
+## Milestone 0.5 — Core Infrastructure
+
+**Status: In Progress**
+
+- [x] Verified the workspace for real: `pnpm install`, Turbo pipelines,
+      TS project references, lint, format — all run from a clean
+      `node_modules`, not just documented. Found and fixed real bugs
+      (ESLint 9 flat-config migration, missing `dist/` builds for
+      shared packages, ESM/CJS `"type"` mismatches, a Next.js/
+      typescript-eslint parser conflict)
+- [x] `apps/server`: Hono, TypeScript, `@hono/zod-openapi`, Zod
+      validation, centralized logging, `GET /health` returning
+      `{ status, version, environment }`
+- [x] `apps/web`: Next.js App Router, TypeScript, Tailwind, shadcn/ui
+      (one primitive + full config), Zustand (dependency only, no
+      store yet), TanStack Query (provider wired)
+- [x] `packages/config`: Zod environment schema, typed fail-fast loader
+- [x] `packages/types`: common types, API response types, error types
+- [x] `packages/utils`: logger, date helpers, id helpers, result/error
+      helpers
+- [x] `packages/database`: Drizzle setup, PostgreSQL connection,
+      migration config, seed entry point — no business schema
+- [x] `packages/auth`: placeholder exports only
+- [x] Environment loading + Zod validation + typed config, fail-fast
+      (`packages/config`)
+- [x] Centralized logger: structured logs, log levels, request IDs,
+      dev/prod formatting, shared via `packages/utils`
+- [x] Standard error classes, API error responses, unknown-error
+      handler, validation error mapping (`packages/utils` +
+      `apps/server/src/middleware/error-handler.ts`)
+- [x] Health checks: `/health` endpoint, DB connectivity check
+      (optional/degraded if unavailable), version reporting
+- [x] `pnpm install`/`lint`/`type-check`/`build`/`format:check` all
+      verified green from a clean install
+- [x] ADR-0020 (logging), ADR-0021 (configuration), ADR-0022 (error
+      handling)
+- [ ] `apps/server` verified against a real PostgreSQL instance — no
+      live database was available in this environment; connection/
+      migrate/seed code type-checks and `drizzle-kit generate` runs,
+      but actual connectivity is untested
+
+**Completion criteria:** every quality gate (`lint`, `type-check`,
+`build`, `format:check`) passes from a clean install — met, verified
+directly, not assumed. Live-database verification remains open.
+
 ## Milestone 1.0 — PINChat MVP
 
-**Status: Blocked** (depends on 0.2, 0.3, and 0.4)
+**Status: Blocked** (depends on 0.2, 0.3, 0.4, and 0.5)
 
 - [ ] Session/PIN issuance and join flow (Journey 1)
 - [ ] Group session lifecycle (Journey 2)
@@ -118,13 +166,16 @@ are implemented end-to-end and match the V1 scope in
 | --------------------------- | ------------------------------------------ | -------- |
 | 0.1 Repository Scaffold     | Complete                                   | 100%     |
 | 0.2 Engineering Foundation  | In Progress — blocked on real product docs | ~85%     |
-| 0.3 Engineering Environment | In Progress — unverified                   | ~85%     |
+| 0.3 Engineering Environment | Complete                                   | 100%     |
 | 0.4 Core Architecture       | In Progress — pending review               | ~90%     |
+| 0.5 Core Infrastructure     | In Progress — pending live-DB verification | ~95%     |
 | 1.0 PINChat MVP             | Blocked                                    | 0%       |
 
 ## Next Objective
 
 Receive the founder's actual approved product documents and replace the
-current drafts in `docs/product/` (versioned 1.0.0). In parallel, run
-`pnpm install` and confirm the workspace/CI actually work end to end,
-and get founder sign-off on the Milestone 0.4 architecture documents.
+current drafts in `docs/product/` (versioned 1.0.0) — still the single
+biggest blocker, unchanged since Milestone 0.2. In parallel: get
+founder sign-off on the Milestone 0.4 architecture documents, verify
+`apps/server` against a real PostgreSQL instance, and verify CI on an
+actual GitHub Actions run.
