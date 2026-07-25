@@ -26,6 +26,77 @@ Next
 
 ---
 
+## 2026-07-25
+
+Milestone 0.5
+
+Completed
+
+- Ran a real `pnpm install` for the first time (previous milestones
+  only documented intent). Found and fixed real bugs: ESLint 9
+  requires flat config (tooling shipped legacy `.eslintrc` format);
+  `eslint` itself was never an installed dependency anywhere; shared
+  packages pointed "main" at raw `.ts` source, which breaks a real
+  `node dist/index.js` production start; missing `"type": "module"`
+  broke named-export interop under tsx/Node; adding it then broke
+  every CJS `eslint.config.js` (renamed to `.cjs`); `eslint-config-next`'s
+  parser doesn't satisfy typescript-eslint's parser-services check and
+  doesn't track type-only-import usage the same way (reordered config,
+  disabled Next's redundant build-time lint pass instead)
+- `packages/types`, `packages/utils`, `packages/config`,
+  `packages/database` implemented for real (not placeholders);
+  `packages/auth` given placeholder exports (signatures only, throw
+  "not implemented"); `packages/ui` given a single empty file so the
+  workspace-wide build/type-check gates pass (still out of scope)
+- `apps/server`: Hono + `@hono/zod-openapi`, request-ID middleware,
+  centralized error handler, fail-fast env, `GET /health` +
+  `GET /openapi.json` + `GET /docs` — verified by actually running the
+  dev server and hitting each endpoint, and separately by running a
+  real production build (`tsc` → `node dist/index.js`) and confirming
+  `/health` still works with JSON (not pretty) logs
+- `apps/web`: Next.js App Router + Tailwind + shadcn/ui (one hand-added
+  primitive, since this environment can't run the CLI's interactive
+  registry fetch) + TanStack Query provider — verified via a real
+  `next build` and `next start`, inspecting the actual rendered HTML
+- ADR-0020 (logging), ADR-0021 (configuration), ADR-0022 (error
+  handling)
+- Full quality-gate suite (`lint`, `type-check`, `build`,
+  `format:check`) verified green from a clean `node_modules`, not
+  assumed from config alone
+
+Decisions
+
+- pino for logging (ADR-0020)
+- Zod-validated fail-fast config loading (ADR-0021)
+- Typed `AppError` hierarchy + centralized HTTP error mapping (ADR-0022)
+
+Problems
+
+- No live PostgreSQL instance available in this environment —
+  `packages/database`'s connection/migrate/seed code type-checks and
+  `drizzle-kit generate` runs against the empty schema, but actual
+  connectivity is unverified
+- CI has only been verified via local equivalents of its jobs, not an
+  actual GitHub Actions run
+- Milestone 0.2 still blocked: real product docs not yet received
+- One commit (`fix(eslint): ignore next-env.d.ts globally`) ended up
+  bundling the full `apps/web` implementation too — a failed pre-commit
+  hook's stash-revert left files staged from a prior attempt. Content
+  is correct and verified; only the commit message undersells scope
+
+Next
+
+- Get a real PostgreSQL instance connected and verify `apps/server`
+  against it
+- Verify CI on an actual GitHub Actions run
+- Add automated dependency-boundary enforcement before Milestone 1.0
+  (see ADR-0019)
+- Still pending: real product docs, founder review of Milestone 0.4
+  architecture docs
+- Begin Milestone 1.0 once 0.2/0.3/0.4/0.5 are all actually closed out
+
+---
+
 ## 2026-07-24
 
 Milestone 0.4
