@@ -41,16 +41,20 @@ code has been written yet.
 
 ## Current Milestone
 
-**Milestone 0.4 — Core Architecture** (in progress)
+**Milestone 0.5 — Core Infrastructure** (in progress)
 
-Designed the architecture every future feature must follow: overall
-style (modular monolith, Clean Architecture, platform/product split),
-exact `packages/*` responsibilities, the enforced dependency/import
-matrix, backend layer structure (`routes` through `events`), frontend
-layer structure (`app` through `assets`), and expanded coding standards
-(naming, barrel exports, import order, error handling, logging,
-comments). Three new ADRs (0017–0019). No messaging, auth, or database
-entities implemented — architecture-only, per this milestone's scope.
+Implementation begins. `pnpm install` actually run and verified (not
+just documented) — surfaced and fixed several real bugs (ESLint 9
+needs flat config; shared packages need a real `dist/` build for
+`node` to resolve them; ESM/CJS mismatches; a Next.js/typescript-eslint
+parser conflict). `packages/{types,utils,config,database,auth}`
+implemented for real (not placeholders) per this milestone's scope;
+`apps/server` is a working Hono app with OpenAPI, Zod validation,
+centralized logging, typed error handling, and a verified `/health`
+endpoint; `apps/web` is a working Next.js App Router app with
+Tailwind, one shadcn/ui primitive, and TanStack Query wired up. Three
+new ADRs (0020–0022). No messaging, friends, users, or authentication
+_logic_ — infrastructure only, per this milestone's scope.
 
 ## Active Tasks
 
@@ -59,14 +63,16 @@ entities implemented — architecture-only, per this milestone's scope.
       assistant-authored, not real product specs) — **still the
       top-priority blocker, carried over from Milestone 0.2**
 - [ ] Founder review of Architecture Overview, Tech Stack Decision, and
-      all five new Milestone 0.4 architecture documents
+      all five Milestone 0.4 architecture documents
 - [ ] Add automated dependency-rule enforcement (`eslint-plugin-boundaries`
       or equivalent) — currently code-review-only, see ADR-0019
 - [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
-- [ ] Run `pnpm install` to activate Husky hooks and verify the
-      workspace installs cleanly (not yet executed/verified)
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2, 0.3, and 0.4 are
+- [ ] Verify `apps/server` against a real PostgreSQL instance (health
+      check's DB branch and `packages/database`'s migrate/seed scripts
+      are implemented but untested against a live database — none was
+      available in this environment)
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2, 0.3, 0.4, and 0.5 are
       all verified/reviewed
 
 ## Completed Tasks
@@ -125,6 +131,37 @@ entities implemented — architecture-only, per this milestone's scope.
 - [x] ADR-0017 (overall architecture), ADR-0018 (package boundaries),
       ADR-0019 (dependency rules)
 
+**Milestone 0.5 — Core Infrastructure**
+
+- [x] Ran a real `pnpm install`; found and fixed real workspace bugs
+      (ESLint 9 flat config migration, package `dist/` builds so
+      `node` can resolve compiled output, ESM/CJS `"type"` mismatches,
+      Next.js/typescript-eslint parser conflicts) — all fixes verified
+      by actually running `pnpm lint`/`type-check`/`build`, not just
+      re-reading config
+- [x] `packages/types`: `Environment`, `ApiResponse<T>`, typed
+      `ErrorCode`/`ApiErrorBody`, `HealthCheckResponse`
+- [x] `packages/utils`: pino-based `createLogger`/`withRequestId`,
+      date/id helpers, `Result<T, E>`, `AppError` hierarchy
+- [x] `packages/config`: Zod `baseEnvSchema`/`extendEnvSchema`, fail-fast
+      `loadEnv()`
+- [x] `packages/database`: Drizzle + `postgres.js` connection, empty
+      schema (no business entities), migrate/seed CLI entry points,
+      `checkDatabaseConnection()` health helper
+- [x] `packages/auth`: placeholder exports only (`createSession`/
+      `joinSession`/`expireSession`, all throw "not implemented")
+- [x] `apps/server`: Hono + `@hono/zod-openapi`, `GET /health` +
+      `GET /openapi.json` + `GET /docs`, request-ID middleware,
+      centralized error handler, fail-fast env — verified end-to-end
+      (dev server hit directly, and a real `next build`-style
+      `tsc` → `node dist/index.js` production start)
+- [x] `apps/web`: Next.js App Router, Tailwind + shadcn/ui token setup,
+      one hand-added shadcn primitive, TanStack Query provider wired —
+      verified via a real `next build` + `next start` + response
+      inspection
+- [x] ADR-0020 (logging), ADR-0021 (configuration), ADR-0022 (error
+      handling)
+
 ## Engineering Principles
 
 - Optimize for maintainability, scalability, readability, security, and
@@ -164,22 +201,22 @@ Root navigation files (quick orientation for humans and AI agents):
 [DECISIONS.md](./DECISIONS.md), [TODO.md](./TODO.md). These are thin
 indexes — full content stays in `/docs`.
 
-| Area                                                            | Path                                                                                                                 |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Product (source of truth)                                       | [`docs/product`](./docs/product)                                                                                     |
-| Architecture overview & tech stack                              | [`docs/architecture`](./docs/architecture)                                                                           |
-| ADR log (19 records as of Milestone 0.4)                        | [`docs/adr`](./docs/adr)                                                                                             |
-| System / Package / Dependency / Backend / Frontend architecture | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)        |
-| Engineering standards                                           | [`docs/engineering`](./docs/engineering)                                                                             |
-| Engineering journal (chronological milestone log)               | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md)                               |
-| Environment variable strategy                                   | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md)                             |
-| Backend / Frontend / API / Database / Deployment / Security     | `docs/{backend,frontend,api,database,deployment,security}` — index stubs only, populated as each area is implemented |
-| Meeting notes                                                   | [`docs/meeting-notes`](./docs/meeting-notes)                                                                         |
-| Workspace apps                                                  | [`apps/`](./apps) — `web` (frontend), `server` (backend), both placeholders                                          |
-| Workspace packages                                              | [`packages/`](./packages) — `ui`, `config`, `types`, `utils`, `database`, `auth`, all placeholders                   |
-| Shared tooling                                                  | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config`                                    |
-| Roadmap                                                         | [`ROADMAP.md`](./ROADMAP.md)                                                                                         |
-| Changelog                                                       | [`CHANGELOG.md`](./CHANGELOG.md)                                                                                     |
+| Area                                                            | Path                                                                                                                                                   |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Product (source of truth)                                       | [`docs/product`](./docs/product)                                                                                                                       |
+| Architecture overview & tech stack                              | [`docs/architecture`](./docs/architecture)                                                                                                             |
+| ADR log (22 records as of Milestone 0.5)                        | [`docs/adr`](./docs/adr)                                                                                                                               |
+| System / Package / Dependency / Backend / Frontend architecture | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)                                          |
+| Engineering standards                                           | [`docs/engineering`](./docs/engineering)                                                                                                               |
+| Engineering journal (chronological milestone log)               | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md)                                                                 |
+| Environment variable strategy                                   | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md)                                                               |
+| Backend / Frontend / API / Database / Deployment / Security     | `docs/{backend,frontend,api,database,deployment,security}` — index stubs only, populated as each area is implemented                                   |
+| Meeting notes                                                   | [`docs/meeting-notes`](./docs/meeting-notes)                                                                                                           |
+| Workspace apps                                                  | [`apps/`](./apps) — `web` (Next.js, implemented), `server` (Hono, implemented) — infrastructure only, no product features                              |
+| Workspace packages                                              | [`packages/`](./packages) — `types`, `utils`, `config`, `database` implemented; `auth` placeholder exports only; `ui` empty placeholder (out of scope) |
+| Shared tooling                                                  | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config`                                                                      |
+| Roadmap                                                         | [`ROADMAP.md`](./ROADMAP.md)                                                                                                                           |
+| Changelog                                                       | [`CHANGELOG.md`](./CHANGELOG.md)                                                                                                                       |
 
 ## Repository Conventions
 
@@ -203,9 +240,9 @@ indexes — full content stays in `/docs`.
 
 See [`docs/adr`](./docs/adr) for the authoritative log, and
 [`DECISIONS.md`](./DECISIONS.md) for the root-level index. As of this
-writing: ADR-0001 through ADR-0019, covering repository structure, the
-full technology stack, build tooling, and core architecture (overall
-style, package boundaries, dependency rules) for PINChat.
+writing: ADR-0001 through ADR-0022, covering repository structure, the
+full technology stack, build tooling, core architecture, and
+infrastructure (logging, configuration, error handling) for PINChat.
 
 ## Known Limitations
 
@@ -220,19 +257,28 @@ style, package boundaries, dependency rules) for PINChat.
 - The three personas in `docs/product/user-personas-and-research.md`
   are explicitly hypothesis-driven, not validated by real user research
   — doubly so given the above.
-- No application code exists yet (by design). `apps/*`, `packages/*`,
-  and `tooling/*` are structure and config only as of Milestone 0.3.
-- The workspace has not been installed or run (`pnpm install` has not
-  been executed in this environment) — configs are believed correct
-  but unverified. Husky hooks are inactive until install runs.
+- No product features exist yet (by design — Milestone 0.5 is
+  infrastructure only; messaging/friends/users/auth logic starts
+  Milestone 1.0).
+- The workspace **has** been installed and run for real as of
+  Milestone 0.5 (`pnpm install`, `lint`, `type-check`, `build`,
+  `format:check` all verified green from a clean `node_modules`).
+  Husky hooks are active (confirmed firing on real commits).
+- `apps/server` has never connected to a real PostgreSQL database —
+  no instance was available in this environment. `packages/database`'s
+  connection/migrate/seed code type-checks and `drizzle-kit generate`
+  runs successfully against the (empty) schema, but actual
+  connectivity is unverified. The `/health` endpoint's "degraded when
+  DB unreachable" branch is implemented but untested against a real
+  outage.
 - License is still a proprietary placeholder pending a final decision.
 - Dependency rules (ADR-0019, [Dependency-Rules.md](./docs/architecture/Dependency-Rules.md))
   are documented but not automated — nothing currently fails CI if a
   future PR violates them. Code review is the only enforcement today.
-- Architecture documented in Milestone 0.4 has no application code
-  exercising it yet — the layer split (e.g. `domain/` with zero
-  infrastructure deps) is a design intent, unverified against real
-  implementation.
+- CI (`.github/workflows/ci.yml`) has not been verified against an
+  actual GitHub Actions run in this environment — only local
+  equivalents of its jobs (`pnpm lint`/`type-check`/`build`) were run
+  directly.
 
 ## Pending Discussions
 
@@ -242,8 +288,8 @@ style, package boundaries, dependency rules) for PINChat.
 - Whether the ephemeral-session data store should be separate from
   PostgreSQL (flagged in ADR-0005's Future Implications, not yet
   decided).
-- Verifying the pnpm workspace installs and CI passes once real
-  dependencies are added.
+- Verifying a real GitHub Actions CI run passes (only run locally so far).
+- Verifying `apps/server` against a live PostgreSQL instance.
 - Adding automated dependency-boundary enforcement before Milestone 1.0
   implementation begins (see ADR-0019 Future Implications).
 

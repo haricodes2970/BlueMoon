@@ -29,6 +29,9 @@ the point.
 | [0017](./docs/adr/ADR-0017-overall-architecture.md) | Overall Architecture — Modular Monolith, Clean Architecture, Platform/Product Split | Accepted |
 | [0018](./docs/adr/ADR-0018-package-boundaries.md)   | Package Boundaries — Six Fixed Packages                                             | Accepted |
 | [0019](./docs/adr/ADR-0019-dependency-rules.md)     | Dependency Rules — Enforced Import Direction                                        | Accepted |
+| [0020](./docs/adr/ADR-0020-logging.md)              | Centralized Logging with pino                                                       | Accepted |
+| [0021](./docs/adr/ADR-0021-configuration.md)        | Zod-Validated, Fail-Fast Environment Configuration                                  | Accepted |
+| [0022](./docs/adr/ADR-0022-error-handling.md)       | Typed Error Classes with Centralized HTTP Mapping                                   | Accepted |
 
 ## Adding a New ADR
 
