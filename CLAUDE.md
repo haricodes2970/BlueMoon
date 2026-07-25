@@ -35,9 +35,11 @@ the conflict instead of silently changing the documents.
 
 **Phase 0 — Engineering Foundation**
 
-Documentation, architecture direction, and technology decisions are
-being established before feature implementation begins. No application
-code has been written yet.
+Documentation, architecture, and infrastructure are being established
+before product feature implementation begins. Real infrastructure code
+exists as of Milestone 0.5 (shared packages, a working backend and
+frontend shell) — no messaging/friends/users/auth _product_ logic yet;
+that starts Milestone 1.0.
 
 ## Current Milestone
 
