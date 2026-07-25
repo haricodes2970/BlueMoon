@@ -18,8 +18,4 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
  * while Next's plugin-specific rules (react-hooks, @next/next) still
  * apply.
  */
-module.exports = [
-  { ignores: ["next-env.d.ts"] },
-  ...compat.extends("next/core-web-vitals"),
-  ...base,
-];
+module.exports = [...compat.extends("next/core-web-vitals"), ...base];

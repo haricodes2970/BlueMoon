@@ -16,6 +16,7 @@ module.exports = [
       ".next/**",
       "node_modules/**",
       ".turbo/**",
+      "**/next-env.d.ts",
     ],
   },
   js.configs.recommended,
