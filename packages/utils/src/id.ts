@@ -1,4 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { customAlphabet, nanoid } from "nanoid";
+
+/** RFC 4122 UUID, for primary keys in `uuid`-typed database columns. */
+export function generateUuid(): string {
+  return randomUUID();
+}
 
 /** Generic unique identifier — not tied to any domain concept. */
 export function generateId(): string {

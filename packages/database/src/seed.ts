@@ -1,9 +1,9 @@
 import { createDatabase } from "./client.js";
 
 /**
- * Seed entry point. No business schema exists yet (Milestone 0.5 is
- * infrastructure-only) -- this wires up the connection/entry pattern
- * future seed data will follow, without seeding anything yet.
+ * Seed entry point. Intentionally empty -- the Identity schema
+ * (Milestone 0.6) has no seed data requirement, and future domains
+ * should add their own seed steps here deliberately, not by default.
  */
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -14,9 +14,7 @@ async function main() {
   const db = createDatabase(connectionString);
   void db;
 
-  console.log(
-    "No seed data defined yet -- packages/database has no business schema (Milestone 0.5).",
-  );
+  console.log("No seed data defined yet.");
 }
 
 main().catch((error: unknown) => {
