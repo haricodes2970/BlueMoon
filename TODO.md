@@ -9,10 +9,14 @@ and remove it on the next pass rather than letting completed items pile up.
 
 - [ ] Replace Draft v1 product documents in `docs/product/` with the
       founder's real, approved documents (blocks Milestone 0.2 close-out)
-- [ ] Run `pnpm install` and verify the workspace installs cleanly;
-      confirm CI passes on an actual PR (blocks Milestone 0.3 close-out)
 - [ ] Founder review and sign-off on all five Milestone 0.4 architecture
       documents (System/Package/Dependency-Rules/Backend/Frontend)
+- [ ] Verify `apps/server` against a real PostgreSQL instance — none
+      was available in this environment; connection/migrate/seed code
+      type-checks but is otherwise untested (blocks Milestone 0.5
+      close-out)
+- [ ] Verify CI on an actual GitHub Actions run (only local equivalents
+      of its jobs have been run so far)
 
 ## Next (before Milestone 1.0 implementation starts)
 
@@ -29,8 +33,8 @@ and remove it on the next pass rather than letting completed items pile up.
 ## Later
 
 - [ ] Validate the three hypothesis personas with real user research
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2, 0.3, and 0.4 are all
-      actually closed out
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2, 0.3, 0.4, and 0.5 are
+      all actually closed out
 
 ## See Also
 
