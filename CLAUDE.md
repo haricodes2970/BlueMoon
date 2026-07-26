@@ -203,7 +203,7 @@ ADR-0025).
 - [x] Auth middleware (Bearer access token) and rate-limit middleware
       (register 5/hr/IP, login 10/15min/IP)
 - [x] All 9 endpoints: `POST /auth/{register,login,logout,refresh,
-    change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
+change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
       `GET /auth/{me,devices}` — routes (OpenAPI schemas) and
       controllers (HTTP translation) as separate files
 - [x] Cookie-based refresh transport (`httpOnly`, `/auth`-scoped),
