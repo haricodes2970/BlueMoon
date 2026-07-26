@@ -92,7 +92,7 @@ for the full spec. Summary:
 - **Username** — permanent, chosen at registration, 3–20 chars,
   lowercase `a-z0-9_`, cannot be changed after registration.
 - **Credential** — the authentication secret (see Authentication
-  below; naming conflict flagged in Open Questions).
+  below; resolved -- see ADR-0025).
 - **Email** — verification and account recovery only, never used
   socially. **Not yet implemented** — no email schema, sending, or
   verification flow exists yet; "forgot credential" is blocked on
@@ -104,10 +104,9 @@ for the full spec. Summary:
 
 See [Authentication.md](../security/Authentication.md) in full.
 Login/registration flow, lockout policy (5 failed attempts → 15-minute
-lock), rate limiting (implemented, not yet wired to any endpoint),
-audit trail. Implemented in `apps/server/src/{domain,services,
-repositories,infrastructure}/identity` as of Milestone 0.6 — domain
-and application layers only, no HTTP endpoints yet.
+lock), rate limiting on register/login, audit trail. Full HTTP API
+(9 endpoints under /auth) implemented as of Milestone 0.7, documented
+live at GET /docs and GET /openapi.json.
 
 ### BlueMoon Token
 
@@ -234,15 +233,11 @@ rate of "remember this device" adoption.
 
 ## Open Questions
 
-1. **Credential/PIN naming and digit-range conflict** (highest
-   priority — see [ADR-0025](../adr/ADR-0025-credential-authentication.md)
-   and [Authentication.md](../security/Authentication.md#terminology-note-open-conflict--see-below)).
-   An earlier instruction said never use "PIN" for platform
-   authentication (to avoid clashing with PINChat's session join-code)
-   and specified "credential"/4–8 digits — implemented and tested. A
-   later instruction specified "PIN"/4–6 digits, directly conflicting.
-   Not resolved; current code/docs consistently use "credential"/4–8
-   until a decision is made.
+1. **~~Credential/PIN naming and digit-range conflict~~ — resolved**
+   (see [ADR-0025](../adr/ADR-0025-credential-authentication.md#resolution)).
+   Internal code keeps "credential"; user-facing UI copy will say
+   "PIN" once a UI exists; digit range stays 4–8 (the conflicting
+   "4–6" spec was not adopted).
 2. How does a PINChat ephemeral session relate to a BlueMoon Identity
    account, if at all? Can a session be started with no account (as
    currently documented) and later "claimed" by a logged-in account?
@@ -259,9 +254,10 @@ rate of "remember this device" adoption.
 
 ## Version History
 
-| Version  | Date       | Change                                                                                                      |
-| -------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| Draft v1 | 2026-07-27 | Initial PRD, synthesizing existing product docs with Milestone 0.6 Identity work. Not yet founder-reviewed. |
+| Version    | Date       | Change                                                                                                      |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| Draft v1   | 2026-07-27 | Initial PRD, synthesizing existing product docs with Milestone 0.6 Identity work. Not yet founder-reviewed. |
+| Draft v1.1 | 2026-07-27 | Milestone 0.7: Identity HTTP API documented; credential/PIN naming conflict resolved (ADR-0025).            |
 
 ## Architecture Decisions Referenced
 
@@ -269,7 +265,7 @@ rate of "remember this device" adoption.
 model — why Identity and PINChat's session-code stay separate),
 [ADR-0024](../adr/ADR-0024-session-strategy.md) (session strategy),
 [ADR-0025](../adr/ADR-0025-credential-authentication.md) (credential
-authentication, open conflict).
+authentication, resolved).
 
 ## Related Documents
 
