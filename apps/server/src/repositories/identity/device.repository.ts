@@ -15,6 +15,12 @@ export interface DeviceRepository {
     userId: string,
     fingerprint: string,
   ): Promise<Device | null>;
+  /**
+   * Added in Milestone 0.7 to back `GET /auth/devices` -- no prior
+   * method listed all of a user's devices. Purely additive: every
+   * other method on this repository is unchanged from Milestone 0.6.
+   */
+  findAllByUserId(userId: string): Promise<Device[]>;
   create(input: CreateDeviceInput): Promise<Device>;
   touchLastSeen(deviceId: string): Promise<void>;
 }
@@ -42,6 +48,13 @@ export function createDeviceRepository(db: Database): DeviceRepository {
         )
         .limit(1);
       return row ?? null;
+    },
+
+    async findAllByUserId(userId) {
+      return db
+        .select()
+        .from(schema.devices)
+        .where(eq(schema.devices.userId, userId));
     },
 
     async create(input) {
