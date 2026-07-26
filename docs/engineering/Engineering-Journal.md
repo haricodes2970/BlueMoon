@@ -97,6 +97,75 @@ Next
 
 ---
 
+## 2026-07-25
+
+Milestone 0.6 (in progress)
+
+Completed
+
+- Drizzle schema for Identity: users, devices, trusted_devices,
+  sessions, refresh_tokens, login_attempts, audit_events -- migration
+  generated, SQL inspected directly
+- Domain layer: Username/Credential value objects, entities, session
+  lifetime + lockout rules, typed domain errors
+- Infrastructure: Argon2id hashing, JWT access tokens, opaque rotating
+  refresh tokens, in-memory rate limiter, audit writer -- each
+  verified by compiling and running it directly, not just type-checked
+- Repositories: one per entity, Drizzle-backed
+- Application layer: register/login/logout/refresh (rotation + reuse
+  detection)/revoke-session/trust-device/change-credential use cases,
+  validation schemas, output DTOs -- verified end-to-end against
+  in-memory fake repositories, every flow including the reuse-
+  detection-kills-the-whole-session edge case
+- Root-caused and fixed a reproducible tsc build race that had been
+  worked around ad hoc for two milestones: tsBuildInfoFile defaults to
+  living next to tsconfig.json, not inside outDir, so `rm -rf dist`
+  never invalidated the incremental cache and tsc silently skipped
+  re-emitting some files. Fixed by co-locating tsBuildInfoFile with
+  dist/ in every package tsconfig
+- docs/security/Authentication.md, Session-Management.md,
+  docs/database/Identity-Schema.md
+- ADR-0023 (identity domain model), ADR-0024 (session strategy),
+  ADR-0025 (credential authentication)
+
+Decisions
+
+- Identity is a separate bounded context from PINChat's session-code,
+  not overloaded terminology (ADR-0023)
+- Two-token session strategy: short-lived stateless JWT access token +
+  rotating opaque refresh token with reuse detection (ADR-0024)
+- Argon2id for credential hashing, generic login failure messages to
+  avoid username enumeration (ADR-0025)
+
+Problems
+
+- Real, reproducible tsc build race root-caused and fixed (see above)
+- Phantom dependency caught by pnpm's strict isolation: apps/server
+  imported drizzle-orm directly but never declared it, only reachable
+  transitively through packages/database -- fixed
+- Unresolved: a later instruction reintroduced "PIN" terminology and a
+  4-6 digit range, directly conflicting with the earlier explicit
+  instruction to use "credential" and the already-implemented,
+  tested 4-8 digit range. Flagged in ADR-0025 and the PRD's Open
+  Questions rather than silently picking one -- needs a founder
+  decision before Milestone 1.0 depends on this system
+- No HTTP/API layer built yet for Identity -- explicitly deferred
+- No committed automated test suite yet -- verified via manual scripts
+  against in-memory fakes, not CI-run tests
+- Never verified against a live PostgreSQL instance -- none available
+  in this environment
+
+Next
+
+- Resolve the credential/PIN naming conflict
+- Build the Identity HTTP/API layer (routes, controllers, OpenAPI,
+  auth middleware)
+- Select a test runner, write real committed tests for Identity
+- Verify against a live PostgreSQL instance
+- Founder review of the new Product Requirements Document
+
+---
+
 ## 2026-07-24
 
 Milestone 0.4

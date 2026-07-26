@@ -143,9 +143,44 @@ code across these boundaries.
 `build`, `format:check`) passes from a clean install — met, verified
 directly, not assumed. Live-database verification remains open.
 
+## Milestone 0.6 — Identity & Authentication Foundation
+
+**Status: In Progress**
+
+- [x] Drizzle schema: `users`, `devices`, `trusted_devices`,
+      `sessions`, `refresh_tokens`, `login_attempts`, `audit_events`
+      (migration generated and inspected, not applied to a live DB)
+- [x] Domain layer: `Username`/`Credential` value objects, entities,
+      session-lifetime + lockout rules, typed domain errors
+- [x] Infrastructure: Argon2id hashing, JWT access tokens, opaque
+      rotating refresh tokens, in-memory rate limiter (not yet wired to
+      an endpoint), audit writer
+- [x] Repositories: one per entity (Drizzle-backed)
+- [x] Application layer: register/login/logout/refresh-session
+      (rotation + reuse detection)/revoke-session/trust-device/
+      change-credential use cases, validation schemas, output DTOs
+- [x] Root-caused and fixed a reproducible `tsc` build race
+- [x] `docs/security/{Authentication,Session-Management}.md`,
+      `docs/database/Identity-Schema.md`
+- [x] ADR-0023 (identity domain model), ADR-0024 (session strategy),
+      ADR-0025 (credential authentication)
+- [ ] **Resolve the credential/PIN naming + digit-range conflict**
+      (see ADR-0025) — blocks calling this milestone done
+- [ ] HTTP/API layer (routes, controllers, OpenAPI, auth middleware) —
+      explicitly deferred, not started
+- [ ] Automated test suite (test runner not yet selected; verified so
+      far via manual scripts against in-memory fakes, not committed
+      tests)
+- [ ] Verified against a live PostgreSQL instance
+
+**Completion criteria:** naming conflict resolved; HTTP layer built and
+verified end-to-end (not just the application layer in isolation); a
+real, repeatable test suite exists and passes in CI; repositories
+verified against a live PostgreSQL instance.
+
 ## Milestone 1.0 — PINChat MVP
 
-**Status: Blocked** (depends on 0.2, 0.3, 0.4, and 0.5)
+**Status: Blocked** (depends on 0.2 through 0.6)
 
 - [ ] Session/PIN issuance and join flow (Journey 1)
 - [ ] Group session lifecycle (Journey 2)
@@ -162,20 +197,23 @@ are implemented end-to-end and match the V1 scope in
 
 ## Progress Summary
 
-| Milestone                   | Status                                     | Progress |
-| --------------------------- | ------------------------------------------ | -------- |
-| 0.1 Repository Scaffold     | Complete                                   | 100%     |
-| 0.2 Engineering Foundation  | In Progress — blocked on real product docs | ~85%     |
-| 0.3 Engineering Environment | Complete                                   | 100%     |
-| 0.4 Core Architecture       | In Progress — pending review               | ~90%     |
-| 0.5 Core Infrastructure     | In Progress — pending live-DB verification | ~95%     |
-| 1.0 PINChat MVP             | Blocked                                    | 0%       |
+| Milestone                      | Status                                                                | Progress |
+| ------------------------------ | --------------------------------------------------------------------- | -------- |
+| 0.1 Repository Scaffold        | Complete                                                              | 100%     |
+| 0.2 Engineering Foundation     | In Progress — blocked on real product docs                            | ~85%     |
+| 0.3 Engineering Environment    | Complete                                                              | 100%     |
+| 0.4 Core Architecture          | In Progress — pending review                                          | ~90%     |
+| 0.5 Core Infrastructure        | In Progress — pending live-DB verification                            | ~95%     |
+| 0.6 Identity & Auth Foundation | In Progress — naming conflict + HTTP layer + tests + live DB all open | ~55%     |
+| 1.0 PINChat MVP                | Blocked                                                               | 0%       |
 
 ## Next Objective
 
-Receive the founder's actual approved product documents and replace the
-current drafts in `docs/product/` (versioned 1.0.0) — still the single
-biggest blocker, unchanged since Milestone 0.2. In parallel: get
-founder sign-off on the Milestone 0.4 architecture documents, verify
-`apps/server` against a real PostgreSQL instance, and verify CI on an
-actual GitHub Actions run.
+Two blockers now compete for top priority: (1) receiving the founder's
+actual approved product documents (unchanged since Milestone 0.2), and
+(2) resolving the credential/PIN naming conflict from Milestone 0.6
+before more code is built on top of the wrong name. In parallel: get
+founder sign-off on Milestone 0.4 architecture docs and the new PRD,
+verify `apps/server` (including Identity) against a real PostgreSQL
+instance, verify CI on an actual GitHub Actions run, and build the
+Identity HTTP layer + test suite.

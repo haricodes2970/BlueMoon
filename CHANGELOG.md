@@ -78,6 +78,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   token setup and one primitive (`Button`), TanStack Query provider.
 - ADR-0020 (logging), ADR-0021 (configuration), ADR-0022 (error
   handling).
+- Identity domain schema in `packages/database`: `users`, `devices`,
+  `trusted_devices`, `sessions`, `refresh_tokens`, `login_attempts`,
+  `audit_events` (migration generated, not yet applied to a live DB).
+- Identity domain layer in `apps/server`
+  (`src/domain/identity`): `Username`/`Credential` value objects,
+  entities, session-lifetime + lockout rules, typed domain errors.
+- Identity infrastructure (`src/infrastructure/identity`): Argon2id
+  hashing, JWT access tokens, opaque rotating refresh tokens, in-memory
+  rate limiter, audit writer.
+- Identity repositories (`src/repositories/identity`): one per entity.
+- Identity application layer (`src/services/identity`): register,
+  login, logout, refresh-session (rotation + reuse detection),
+  revoke-session, trust-device/revoke-device-trust, change-credential
+  use cases; Zod validation schemas (`src/validation/identity`); output
+  DTOs stripping internal user fields.
+- `docs/security/Authentication.md`, `Session-Management.md`,
+  `docs/database/Identity-Schema.md`.
+- ADR-0023 (identity domain model), ADR-0024 (session strategy),
+  ADR-0025 (credential authentication).
 
 ### Changed
 
@@ -107,6 +126,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CLAUDE.md`, `ROADMAP.md`, `DECISIONS.md`, and the Engineering
   Journal updated for Milestone 0.5; Milestone 0.3 marked Complete now
   that `pnpm install`/lint/build have actually been verified.
+- `CLAUDE.md`, `ROADMAP.md`, `DECISIONS.md`, `TODO.md`, and the
+  Engineering Journal updated for Milestone 0.6.
+- `apps/server/package.json` gained `drizzle-orm` as an explicit
+  dependency (was only reachable transitively through
+  `packages/database`).
+- `tsBuildInfoFile` set to live inside `dist/` for every package/app
+  with an `outDir` (previously defaulted to living next to
+  `tsconfig.json`).
 
 ### Fixed
 
@@ -132,3 +159,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `pnpm lint` gate.
 - `packages/ui` given a minimal empty placeholder so the workspace-wide
   `type-check`/`build` gates pass (it remains out of scope otherwise).
+- Root-caused and fixed a reproducible `tsc` build race: composite TS
+  projects write their incremental cache next to `tsconfig.json` by
+  default, not inside `outDir`, so `rm -rf dist` (used ad hoc in
+  Milestones 0.5/0.6) never invalidated it and `tsc` sometimes silently
+  skipped re-emitting files it wrongly believed were still current.
