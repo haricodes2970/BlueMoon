@@ -39,28 +39,26 @@ is platform infrastructure, not PINChat feature work)
 
 Documentation, architecture, and infrastructure are being established
 before PINChat feature implementation begins. Real infrastructure code
-exists as of Milestone 0.5; Milestone 0.6 adds the first full
-bounded-context implementation (Identity) with domain/application
-layers, though no HTTP/API surface yet.
+exists as of Milestone 0.5; Milestone 0.6 built the Identity bounded
+context's domain/application layers; Milestone 0.7 exposes it as a
+real, tested HTTP API.
 
 ## Current Milestone
 
-**Milestone 0.6 — Identity & Authentication Foundation** (in progress)
+**Milestone 0.7 — Identity HTTP/API Layer** (in progress)
 
-Domain, infrastructure, repository, and application layers for the
-Identity bounded context are implemented and verified (against
-in-memory fakes and real Argon2id/JWT libraries — not yet a live
-PostgreSQL instance). No HTTP/API layer yet — routes, controllers, and
-the OpenAPI surface for these endpoints are explicitly out of scope
-until a following step. Three new ADRs (0023–0025). **Unresolved open
-conflict**: see Active Tasks below — a later instruction reintroduced
-"PIN" terminology and a different digit range than what's implemented.
+All 9 planned Identity endpoints (`/auth/{register,login,logout,
+refresh,change-credential,trust-device,me,devices}` +
+`DELETE /auth/trust-device/:id`) are implemented, wired through
+OpenAPIHono, documented live at `GET /docs`/`GET /openapi.json`, and
+covered by a real Vitest integration suite (16 tests, all passing).
+Three new ADRs (0023–0025 already existed from 0.6; no new ADR numbers
+this milestone — ADR-0025 was _resolved_, not superseded). The
+credential/PIN naming conflict from Milestone 0.6 is now resolved (see
+ADR-0025).
 
 ## Active Tasks
 
-- [ ] **Resolve the credential/PIN naming and digit-range conflict**
-      (see [ADR-0025](./docs/adr/ADR-0025-credential-authentication.md)) —
-      blocks finalizing Identity before Milestone 1.0 consumes it
 - [ ] Replace Draft v1 product documents with the founder's actual
       approved documents (see Known Limitations — current drafts were
       assistant-authored, not real product specs) — **still a
@@ -71,19 +69,19 @@ conflict**: see Active Tasks below — a later instruction reintroduced
       (`docs/product/Product-Requirements-Document.md`)
 - [ ] Add automated dependency-rule enforcement (`eslint-plugin-boundaries`
       or equivalent) — currently code-review-only, see ADR-0019
-- [ ] Select a test runner and write real automated tests for Identity
-      (verified so far via manual scripts against in-memory fakes, not
-      a committed, repeatable test suite — see Known Limitations)
-- [ ] Build the HTTP/API layer for Identity (routes, controllers,
-      OpenAPI docs, auth middleware) — deliberately deferred, not yet
-      started
+- [ ] Expand the Vitest suite to the domain layer directly (unit tests
+      for Username/Credential/session-lifetime/lockout-policy) and to
+      repositories once a live database is available — current
+      coverage is HTTP-integration-level only
 - [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
 - [ ] Verify `apps/server` against a real PostgreSQL instance (health
       check's DB branch, `packages/database`'s migrate/seed scripts,
       and every Identity repository are implemented but untested
       against a live database — none was available in this environment)
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.6 are all
+- [ ] Move the in-memory rate limiter to a shared store (e.g. Redis)
+      before horizontal scaling — see ADR/TODO
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.7 are all
       verified/reviewed
 
 ## Completed Tasks
@@ -193,10 +191,38 @@ conflict**: see Active Tasks below — a later instruction reintroduced
 - [x] `docs/security/Authentication.md`, `Session-Management.md`,
       `docs/database/Identity-Schema.md`
 - [x] ADR-0023 (identity domain model), ADR-0024 (session strategy),
-      ADR-0025 (credential authentication — flags the open PIN/
+      ADR-0025 (credential authentication — flagged the open PIN/
       credential naming conflict rather than resolving it silently)
 - [ ] HTTP/API layer, test suite, live-database verification — not yet
-      done, see Active Tasks
+      done at the time, completed in Milestone 0.7 below
+
+**Milestone 0.7 — Identity HTTP/API Layer**
+
+- [x] Composition root (`container.ts`) wiring every Milestone 0.6
+      repository/infra/service factory, unmodified
+- [x] Auth middleware (Bearer access token) and rate-limit middleware
+      (register 5/hr/IP, login 10/15min/IP)
+- [x] All 9 endpoints: `POST /auth/{register,login,logout,refresh,
+    change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
+      `GET /auth/{me,devices}` — routes (OpenAPI schemas) and
+      controllers (HTTP translation) as separate files
+- [x] Cookie-based refresh transport (`httpOnly`, `/auth`-scoped),
+      access token in the JSON response body
+- [x] Selected Vitest as the workspace test runner (open item since
+      Milestone 0.3); 16 real integration tests covering every
+      endpoint plus edge cases (lockout, rate limiting, reuse
+      detection, ownership checks), all passing
+- [x] Two minimal, additive-only exceptions to "repositories/services
+      are stable": `DeviceRepository.findAllByUserId` (no existing
+      method could list a user's devices) and `TooManyRequestsError`/
+      `TOO_MANY_REQUESTS` added to `packages/utils`/`packages/types`
+      (shared infra, not Identity domain/repo/service code)
+- [x] ADR-0025 resolved (not superseded): internal code keeps
+      "credential", user-facing UI will say "PIN", DB fields unchanged,
+      digit range stays 4–8
+- [x] Docs updated: `Authentication.md`, `Session-Management.md`, PRD,
+      this file, `ROADMAP.md`, Engineering Journal, `CHANGELOG.md`,
+      `Phase-0.7.md`
 
 ## Engineering Principles
 
@@ -242,7 +268,7 @@ indexes — full content stays in `/docs`.
 | Product (source of truth)                                       | [`docs/product`](./docs/product)                                                                                                                       |
 | Product Requirements Document (canonical implementation spec)   | [`docs/product/Product-Requirements-Document.md`](./docs/product/Product-Requirements-Document.md)                                                     |
 | Architecture overview & tech stack                              | [`docs/architecture`](./docs/architecture)                                                                                                             |
-| ADR log (25 records as of Milestone 0.6)                        | [`docs/adr`](./docs/adr)                                                                                                                               |
+| ADR log (25 records as of Milestone 0.7)                        | [`docs/adr`](./docs/adr)                                                                                                                               |
 | System / Package / Dependency / Backend / Frontend architecture | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)                                          |
 | Security (Identity auth, session management)                    | [`docs/security`](./docs/security)                                                                                                                     |
 | Database (Identity schema)                                      | [`docs/database`](./docs/database)                                                                                                                     |
@@ -321,36 +347,37 @@ open, unresolved naming conflict, see Known Limitations).
   actual GitHub Actions run in this environment — only local
   equivalents of its jobs (`pnpm lint`/`type-check`/`build`) were run
   directly.
-- **Open naming conflict**: platform authentication is implemented as
-  "credential" (4–8 numeric digits) per an earlier explicit instruction
-  to avoid the word "PIN" (which means something unrelated in
-  PINChat). A later instruction specified "PIN" and a 4–6 digit range.
-  Not silently resolved either way — see
-  [ADR-0025](./docs/adr/ADR-0025-credential-authentication.md) and the
-  PRD's Open Questions. Current code and docs consistently use
-  "credential"/4–8 until this is decided.
-- The Identity domain (Milestone 0.6) has no automated test suite yet
-  — verified via ad hoc manual scripts run against in-memory fake
-  repositories (register/login/refresh-rotation/reuse-detection/
-  logout/credential-change flows all exercised and confirmed correct),
-  not a committed, repeatable, CI-run test suite. `pnpm test` currently
-  succeeds trivially (no package declares a `test` script yet).
-- No HTTP/API layer exists for Identity yet — the domain/application
-  layers are complete and internally consistent, but nothing is
-  reachable over a network. `docs/security/Session-Management.md`
-  documents the _planned_ token transport (bearer access token in the
-  body, refresh token as an httpOnly cookie) explicitly as not yet
-  implemented.
+- **Credential/PIN naming — resolved** (was an open conflict through
+  Milestone 0.6): internal code keeps "credential"; user-facing UI
+  copy will say "PIN" once a UI exists; database fields unchanged;
+  digit range stays 4–8. See
+  [ADR-0025](./docs/adr/ADR-0025-credential-authentication.md#resolution).
+- The Identity domain has real, committed test coverage as of
+  Milestone 0.7 (16 Vitest integration tests,
+  `apps/server/src/routes/identity/auth.routes.test.ts`), but only at
+  the HTTP-integration level, against in-memory fake repositories — no
+  domain-layer unit tests yet, and no live-database integration tests
+  (none available in this environment). `pnpm test` now runs real
+  assertions, not a no-op.
 - Identity's repositories/schema have never run against a real
   PostgreSQL instance — same gap as `packages/database` generally
-  (see above), now larger in surface area (7 tables, not 0).
+  (see above); the HTTP layer (Milestone 0.7) is verified against
+  in-memory fakes implementing the same interfaces, not a live DB.
+- The in-memory rate limiter (wired to `/auth/register` and
+  `/auth/login` as of Milestone 0.7) is single-process, not
+  distributed — documented at the source; must move to a shared store
+  before horizontal scaling.
+- `TrustedDeviceRepository.revoke(id)` has no built-in ownership
+  check — the `DELETE /auth/trust-device/:id` controller compensates
+  by requiring `deviceId` as a query param and verifying it via
+  `findActiveByUserAndDevice` before revoking, rather than modifying
+  the repository (Milestone 0.7 was scoped to treat repositories as
+  stable).
 
 ## Pending Discussions
 
 - Receiving and swapping in the founder's real product documents
   (highest priority — current drafts are placeholders, not spec).
-- **Resolving the credential/PIN naming and digit-range conflict**
-  (see ADR-0025) before Milestone 1.0 begins consuming Identity.
 - Final license choice.
 - Whether the ephemeral-session data store should be separate from
   PostgreSQL (flagged in ADR-0005's Future Implications, not yet
@@ -359,8 +386,8 @@ open, unresolved naming conflict, see Known Limitations).
 - Verifying `apps/server` against a live PostgreSQL instance.
 - Adding automated dependency-boundary enforcement before Milestone 1.0
   implementation begins (see ADR-0019 Future Implications).
-- Selecting a test runner and building real coverage for Identity
-  before it's relied upon by PINChat feature work.
+- Expanding Identity test coverage to the domain layer directly and to
+  live-database repository tests.
 
 ## Future Roadmap
 
