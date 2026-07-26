@@ -1,6 +1,6 @@
 import { schema, type Database } from "@bluemoon/database";
 import { generateUuid } from "@bluemoon/utils";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { RefreshToken } from "../../domain/identity/entities/session.js";
 
 export interface CreateRefreshTokenInput {
@@ -15,6 +15,8 @@ export interface RefreshTokenRepository {
   create(input: CreateRefreshTokenInput): Promise<RefreshToken>;
   revoke(id: string): Promise<void>;
   revokeBySession(sessionId: string): Promise<void>;
+  /** Revokes every refresh token across every session belonging to this user. */
+  revokeAllForUser(userId: string): Promise<void>;
 }
 
 export function createRefreshTokenRepository(
@@ -57,6 +59,18 @@ export function createRefreshTokenRepository(
         .update(schema.refreshTokens)
         .set({ revokedAt: new Date() })
         .where(eq(schema.refreshTokens.sessionId, sessionId));
+    },
+
+    async revokeAllForUser(userId) {
+      const userSessions = db
+        .select({ id: schema.sessions.id })
+        .from(schema.sessions)
+        .where(eq(schema.sessions.userId, userId));
+
+      await db
+        .update(schema.refreshTokens)
+        .set({ revokedAt: new Date() })
+        .where(inArray(schema.refreshTokens.sessionId, userSessions));
     },
   };
 }
