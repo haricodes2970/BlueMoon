@@ -1,6 +1,6 @@
 # Session Management
 
-**Status: Draft v1 — authored 2026-07-25, pending review**
+**Status: Draft v2 — updated 2026-07-27 (Milestone 0.7, transport implemented), pending review**
 
 Describes the session/token strategy implemented in
 `apps/server/src/{domain,services,infrastructure,repositories}/identity`.
@@ -33,24 +33,26 @@ looked up, not a low-entropy secret being brute-forced offline, so a
 fast SHA-256 hash is used instead (see
 `apps/server/src/infrastructure/identity/refresh-token.ts`).
 
-## Transport (planned — not yet wired to HTTP)
+## Transport
 
-No API/route layer exists yet for Identity (as of this writing —
-Milestone 0.6 stopped at the application layer per explicit scope). The
-intended transport, to be implemented when routes are built:
+Implemented as of Milestone 0.7 (`apps/server/src/infrastructure/identity/cookies.ts`,
+`controllers/identity/auth.controller.ts`):
 
-- **Access token**: returned in the JSON response body. Client holds it
-  in memory (not `localStorage`, to reduce XSS exposure), attaches it
-  as `Authorization: Bearer <token>`.
-- **Refresh token**: intended to be set as an `httpOnly`, `Secure`,
-  `SameSite=Lax` cookie — never exposed to client-side JavaScript. The
-  service layer currently returns the raw refresh token as a string
-  (transport-agnostic); cookie-setting is an HTTP-layer concern for the
-  future routes to add, not something the service layer should know
-  about.
+- **Access token**: returned in the JSON response body
+  (`{ success: true, data: { accessToken, ... } }`). Client is expected
+  to hold it in memory (not `localStorage`, to reduce XSS exposure) and
+  attach it as `Authorization: Bearer <token>` on subsequent requests.
+- **Refresh token**: set as an `httpOnly`, `SameSite=Lax` cookie
+  (`bm_refresh`), `Secure` outside `development`, scoped to `/auth` --
+  never exposed to client-side JavaScript. `POST /auth/refresh` reads it
+  from the cookie, not a request body. The application-layer services
+  themselves remain transport-agnostic (they take/return the raw token
+  string); cookie-setting is entirely a controller-layer concern.
 
-This is a plan, not yet implemented — flagged explicitly so it isn't
-mistaken for shipped behavior.
+Verified via the Vitest integration suite
+(`routes/identity/auth.routes.test.ts`): cookie set on register/login/
+refresh, cookie cleared on logout, and `POST /auth/refresh` with no
+cookie rejected with 401.
 
 ## Lifetime Rules
 

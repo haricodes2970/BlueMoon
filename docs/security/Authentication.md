@@ -1,33 +1,58 @@
 # Authentication
 
-**Status: Draft v1 — authored 2026-07-25, pending review**
+**Status: Draft v2 — updated 2026-07-27 (Milestone 0.7, HTTP API layer), pending review**
 
 Describes BlueMoon's platform authentication as implemented in
-`apps/server/src/{domain,services,repositories,infrastructure}/identity`.
+`apps/server/src/{domain,services,repositories,infrastructure,controllers,routes}/identity`.
 This is the **Identity bounded context** — persistent platform accounts,
 unrelated to PINChat's ephemeral session join-code. See
 [ADR-0023](../adr/ADR-0023-identity-domain-model.md) for why these are
 kept as two separate concepts.
 
-## Terminology Note (open conflict — see below)
+## HTTP API
 
+Nine endpoints, all under `/auth`, documented live at `GET /docs`
+(Swagger UI) and `GET /openapi.json`:
+
+| Endpoint                        | Auth required               | Rate limited      |
+| ------------------------------- | --------------------------- | ----------------- |
+| `POST /auth/register`           | No                          | Yes (5/hour/IP)   |
+| `POST /auth/login`              | No                          | Yes (10/15min/IP) |
+| `POST /auth/refresh`            | No (refresh cookie instead) | No                |
+| `POST /auth/logout`             | Yes                         | No                |
+| `POST /auth/change-credential`  | Yes                         | No                |
+| `POST /auth/trust-device`       | Yes                         | No                |
+| `DELETE /auth/trust-device/:id` | Yes                         | No                |
+| `GET /auth/me`                  | Yes                         | No                |
+| `GET /auth/devices`             | Yes                         | No                |
+
+"Auth required" means `Authorization: Bearer <access token>` (see
+[Session-Management.md](./Session-Management.md)), enforced by
+`middleware/identity/require-auth.ts`. `register` auto-logs-in (calls
+`registerUser` then `login` with the same submitted credential —
+both untouched Milestone 0.6 use cases) rather than adding session
+issuance to `registerUser` itself.
+
+`DELETE /auth/trust-device/:id` closes a real gap:
+`TrustedDeviceRepository.revoke(id)` has no built-in ownership check.
+Since the route only carries a trust-grant ID in its path, `deviceId`
+is required as a query parameter so the controller can confirm (via
+the existing `findActiveByUserAndDevice`) that the trust grant
+actually belongs to the caller before revoking it.
+
+## Terminology Note (resolved)
+
+**Internal code uses "credential"; user-facing UI copy uses "PIN."**
 This document and the codebase use **credential** (also "authSecret" in
 some discussion) for the numeric secret a user sets during registration
-and uses to log in. This was an explicit instruction: avoid the word
-"PIN" for platform authentication so it isn't confused with PINChat's
-unrelated session join-code.
-
-A later instruction reintroduced "4–6 digit PIN" as the platform
-identity term, which conflicts with both the earlier naming instruction
-and the already-implemented, tested value object
-(`CREDENTIAL_MIN_LENGTH = 4`, `CREDENTIAL_MAX_LENGTH = 8` — see
-`apps/server/src/domain/identity/value-objects/credential.ts`). Per the
-Product Documentation Policy, this conflict is being raised rather than
-silently resolved either way. **Unresolved — needs a decision**: keep
-"credential" + 4–8 digits, or rename to match the newer "PIN" + 4–6
-spec (which would require code changes, not just a documentation
-rename). See Open Questions in the
-[Product Requirements Document](../product/Product-Requirements-Document.md#open-questions).
+and uses to log in — every type, variable, database field, and
+engineering doc reference stays "credential," unchanged. Once a UI
+exists, anything a user reads on screen (labels, prompts, error text)
+should say "PIN" instead. Database fields are not renamed. See
+[ADR-0025](../adr/ADR-0025-credential-authentication.md#resolution)
+for the full resolution — this was flagged as an open naming conflict
+in Milestone 0.6/0.7 and closed by explicit instruction rather than
+guessed at.
 
 ## Platform Identity
 
@@ -74,8 +99,8 @@ Implemented in `Username.create()`
 Implemented in `Credential.create()`
 (`apps/server/src/domain/identity/value-objects/credential.ts`):
 
-- Length: 4–8 digits (see [Terminology Note](#terminology-note-open-conflict--see-below)
-  for the open conflict with a newer "4–6" spec).
+- Length: 4–8 digits (see [Terminology Note](#terminology-note-resolved)
+  — internal "credential," user-facing "PIN," digit range unchanged).
 - Format: numeric only.
 - Rejects a fixed list of trivial values (`0000`, `1234`, `123456`,
   etc.) — see the source for the full list.
@@ -130,17 +155,18 @@ Implemented in `apps/server/src/domain/identity/rules/lockout-policy.ts`:
 ## Rate Limiting
 
 Implemented in `apps/server/src/infrastructure/identity/rate-limiter.ts`
-— a fixed-window, in-memory limiter. **Not yet wired to any endpoint**
-(no HTTP layer exists yet for Identity as of this writing).
+— a fixed-window, in-memory limiter, wrapped as Hono middleware in
+`middleware/identity/rate-limit.ts`. Wired to two endpoints as of
+Milestone 0.7:
 
-Planned limits (to be applied once routes exist, not yet enforced):
+| Action                | Limit                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `POST /auth/register` | 5 per hour per IP                                                                      |
+| `POST /auth/login`    | 10 per 15 minutes per IP (on top of the per-account [Lockout Policy](#lockout-policy)) |
 
-| Action                       | Limit (planned)                                                                        |
-| ---------------------------- | -------------------------------------------------------------------------------------- |
-| Registration                 | Per-IP, to be finalized when routes are built                                          |
-| Login                        | Per-username and per-IP, to be finalized when routes are built                         |
-| Credential attempts          | Covered by [Lockout Policy](#lockout-policy) (per-account) plus rate limiting (per-IP) |
-| Username availability lookup | Per-IP, to be finalized when routes are built                                          |
+No username-availability-lookup endpoint exists yet (not part of the
+9 routes built in Milestone 0.7) — rate limiting it is deferred until
+one does.
 
 **Known limitation** (documented at the source): the rate limiter is
 single-process and not distributed. A multi-instance deployment
