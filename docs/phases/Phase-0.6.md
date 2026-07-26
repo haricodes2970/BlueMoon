@@ -1,6 +1,12 @@
 # Phase 0.6 — Identity & Authentication Foundation
 
-**Status: In Progress** | **Dates:** 2026-07-25 – 2026-07-27 (ongoing)
+**Status: Complete** | **Dates:** 2026-07-25 – 2026-07-27
+
+Note: the HTTP/API layer, test suite, and live-database verification
+originally listed as this phase's open items were delivered/tracked
+under [Phase-0.7](./Phase-0.7.md) instead, once that phase was
+explicitly scoped separately. This phase closes on its actual scope:
+domain/repository/application layers, complete and verified.
 
 ## Purpose
 
