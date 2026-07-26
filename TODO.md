@@ -49,7 +49,7 @@ and remove it on the next pass rather than letting completed items pile up.
 ## Later
 
 - [ ] Implement BlueMoon Token (friend-request capability) — documented
-      in the [PRD](./docs/product/Product-Requirements-Document.md#blueMoon-token)
+      in the [PRD](./docs/product/Product-Requirements-Document.md#bluemoon-token)
       as a future capability; explicitly not implemented until the
       friendship milestone
 - [ ] Validate the three hypothesis personas with real user research
