@@ -59,6 +59,13 @@ export class ConflictError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  constructor(message = "Too many requests") {
+    super("TOO_MANY_REQUESTS", message, 429);
+    this.name = "TooManyRequestsError";
+  }
+}
+
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
