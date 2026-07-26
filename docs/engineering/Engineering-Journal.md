@@ -97,9 +97,86 @@ Next
 
 ---
 
+## 2026-07-27
+
+Milestone 0.7
+
+Completed
+
+- Composition root (container.ts) wiring every Milestone 0.6
+  repository/infra/service factory, unmodified
+- Auth middleware (Bearer access token) and rate-limit middleware
+  (register 5/hr/IP, login 10/15min/IP)
+- All 9 endpoints implemented: POST /auth/{register,login,logout,
+  refresh,change-credential,trust-device}, DELETE /auth/trust-device/
+  :id, GET /auth/{me,devices} -- routes (OpenAPI schemas) and
+  controllers (HTTP translation) as separate files, full OpenAPI docs
+  live at /docs and /openapi.json
+- Cookie-based refresh transport (httpOnly, /auth-scoped), access
+  token in the JSON response body
+- Selected Vitest as the workspace test runner (open since Milestone
+  0.3); 16 real integration tests covering every endpoint plus edge
+  cases, all passing -- pnpm test is no longer a no-op
+- ADR-0025 resolved (not superseded): internal code keeps
+  "credential", user-facing UI will say "PIN" once one exists, DB
+  fields unchanged, digit range stays 4-8
+- Two minimal, additive-only exceptions to "repositories/services are
+  stable": DeviceRepository.findAllByUserId (no existing method could
+  list a user's devices for GET /auth/devices) and
+  TooManyRequestsError/TOO_MANY_REQUESTS added to packages/utils/
+  packages/types (shared infra, not Identity code)
+- Closed a real authorization gap without modifying the repository:
+  TrustedDeviceRepository.revoke(id) has no ownership check, so
+  DELETE /auth/trust-device/:id requires deviceId as a query param and
+  verifies it via the existing findActiveByUserAndDevice before
+  revoking
+- Docs updated: Authentication.md (new HTTP API section, resolved
+  terminology note, rate limiting section corrected), Session-
+  Management.md (Transport section: planned -> implemented), PRD,
+  CLAUDE.md, ROADMAP.md (0.6 marked Complete), this entry, CHANGELOG.md
+
+Decisions
+
+- register auto-logs-in by calling registerUser then login with the
+  same submitted credential (both untouched use cases) rather than
+  adding session issuance to registerUser itself
+- Access token in response body, refresh token as httpOnly cookie --
+  the plan documented in Milestone 0.6 is now shipped behavior
+
+Problems
+
+- Real type bug caught by tsc: deviceLabel could be undefined from the
+  Zod schema but services require string | null -- fixed with an
+  explicit ?? null normalization at both call sites
+- Two genuine implementation gaps found while building the HTTP layer
+  that the "treat repositories as stable" instruction didn't leave a
+  clean way to satisfy: no method to list a user's devices, and no
+  ownership check on trust-grant revocation. Resolved with a minimal
+  additive method and a controller-side ownership check respectively,
+  both flagged explicitly rather than silently worked around
+- Domain-layer unit tests and live-database repository tests still
+  don't exist -- current coverage is HTTP-integration-level only,
+  against in-memory fakes (same limitation as Milestone 0.6, now
+  formalized as committed tests instead of manual scripts)
+- Still no live PostgreSQL instance available in this environment
+
+Next
+
+- Expand test coverage to the domain layer directly and to real-
+  database repository tests
+- Verify against a live PostgreSQL instance
+- Move the in-memory rate limiter to a shared store before horizontal
+  scaling
+- Still pending: real product docs, founder review of architecture
+  docs and the PRD, automated dependency-boundary enforcement
+- Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.7 are all
+  actually closed out
+
+---
+
 ## 2026-07-25
 
-Milestone 0.6 (in progress)
+Milestone 0.6
 
 Completed
 

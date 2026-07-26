@@ -97,6 +97,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/database/Identity-Schema.md`.
 - ADR-0023 (identity domain model), ADR-0024 (session strategy),
   ADR-0025 (credential authentication).
+- Identity HTTP/API layer (Milestone 0.7): composition root
+  (`container.ts`), auth + rate-limit middleware
+  (`middleware/identity`), all 9 `/auth/*` endpoints (register, login,
+  logout, refresh, change-credential, trust-device, revoke-device-trust,
+  me, devices) as routes (`routes/identity`) + controllers
+  (`controllers/identity`), cookie-based refresh transport
+  (`infrastructure/identity/cookies.ts`), client-IP extraction
+  (`infrastructure/identity/client-ip.ts`).
+- `TooManyRequestsError`/`TOO_MANY_REQUESTS` in `packages/utils`/
+  `packages/types` (additive, for rate-limited endpoints).
+- `DeviceRepository.findAllByUserId` (additive, backs `GET /auth/devices`).
+- Vitest selected as the workspace test runner; 16 real integration
+  tests for the Identity HTTP API
+  (`apps/server/src/routes/identity/auth.routes.test.ts`) plus a
+  reusable in-memory fake-repository test harness
+  (`apps/server/src/test-utils/fake-identity-container.ts`).
 
 ### Changed
 
@@ -134,6 +150,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tsBuildInfoFile` set to live inside `dist/` for every package/app
   with an `outDir` (previously defaulted to living next to
   `tsconfig.json`).
+- ADR-0025 resolved (status changed from "Accepted, with an open
+  unresolved conflict" to "Accepted"): internal code keeps
+  "credential", user-facing UI will say "PIN", DB fields and digit
+  range (4–8) unchanged. `Authentication.md`, `Session-Management.md`,
+  the PRD, `CLAUDE.md`, `ROADMAP.md` (Milestone 0.6 marked Complete),
+  `DECISIONS.md`, and the Engineering Journal updated for Milestone 0.7.
 
 ### Fixed
 
