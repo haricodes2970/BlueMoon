@@ -13,7 +13,7 @@
   "dependencies": {
     "@bluemoon/types": "workspace:*",
     "nanoid": "^5.0.9",
-    "pino": "^9.5.0",
+    "pino": "^10.3.1",
     "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
