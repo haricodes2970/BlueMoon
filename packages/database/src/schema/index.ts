@@ -5,3 +5,5 @@ export * from "./sessions.js";
 export * from "./refresh-tokens.js";
 export * from "./login-attempts.js";
 export * from "./audit-events.js";
+export * from "./blue-moon-tokens.js";
+export * from "./friendships.js";
