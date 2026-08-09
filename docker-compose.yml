@@ -1,0 +1,22 @@
+services:
+  # Local PostgreSQL for development and Milestone 0.8 real-database
+  # integration tests (see docs/phases/Phase-0.8.md). Not used in
+  # production -- production hosting is Railway (ADR-0012).
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bluemoon
+      POSTGRES_PASSWORD: bluemoon
+      POSTGRES_DB: bluemoon_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - bluemoon-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bluemoon -d bluemoon_dev"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+volumes:
+  bluemoon-postgres-data:
