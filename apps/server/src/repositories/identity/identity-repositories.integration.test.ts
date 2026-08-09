@@ -5,7 +5,7 @@ import { schema, type Database } from "@bluemoon/database";
 import {
   createTestDatabase,
   hasTestDatabase,
-  resetIdentityTables,
+  resetAllTables,
 } from "../../test-utils/real-db.js";
 import { createUserRepository } from "./user.repository.js";
 import { createDeviceRepository } from "./device.repository.js";
@@ -34,7 +34,7 @@ describe.skipIf(!hasTestDatabase())(
     });
 
     beforeEach(async () => {
-      await resetIdentityTables(db);
+      await resetAllTables(db);
     });
 
     afterAll(async () => {

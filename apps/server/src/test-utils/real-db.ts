@@ -31,12 +31,12 @@ export function createTestDatabase(): Database {
 }
 
 /**
- * Truncates every Identity table and restarts identity sequences.
+ * Truncates every Identity and Social table and restarts sequences.
  * `CASCADE` handles FK dependency order for us, so table order here
  * doesn't matter. Called between tests, not once per suite -- tests
  * must not depend on execution order.
  */
-export async function resetIdentityTables(db: Database): Promise<void> {
+export async function resetAllTables(db: Database): Promise<void> {
   await db.execute(
     `TRUNCATE TABLE
       audit_events,
@@ -45,6 +45,8 @@ export async function resetIdentityTables(db: Database): Promise<void> {
       sessions,
       trusted_devices,
       devices,
+      blue_moon_tokens,
+      friendships,
       users
     RESTART IDENTITY CASCADE`,
   );

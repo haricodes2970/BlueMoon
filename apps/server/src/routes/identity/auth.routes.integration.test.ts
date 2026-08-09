@@ -5,7 +5,7 @@ import { createIdentityContainer } from "../../container.js";
 import {
   createTestDatabase,
   hasTestDatabase,
-  resetIdentityTables,
+  resetAllTables,
 } from "../../test-utils/real-db.js";
 import type { ServerEnv } from "../../env.js";
 
@@ -63,7 +63,7 @@ describe.skipIf(!hasTestDatabase())("Identity HTTP API (real Postgres)", () => {
   });
 
   beforeEach(async () => {
-    await resetIdentityTables(db);
+    await resetAllTables(db);
   });
 
   afterAll(async () => {
