@@ -1,6 +1,6 @@
 # Phase 0.7 — Identity HTTP/API Layer
 
-**Status: In Progress** | **Dates:** 2026-07-27
+**Status: Complete** | **Dates:** 2026-07-27 (live-database verification closed under [Phase-0.8.md](./Phase-0.8.md), 2026-08-09)
 
 ## Purpose
 
@@ -40,8 +40,9 @@ committed automated test suite.
 - [x] Docs updated (Authentication.md, Session-Management.md, PRD,
       CLAUDE.md, ROADMAP.md, Engineering Journal, CHANGELOG.md, this
       document)
-- [ ] Live PostgreSQL verification — still open
-- [ ] Domain-layer unit tests, real-DB repository tests — still open
+- [x] Live PostgreSQL verification — closed under [Phase-0.8.md](./Phase-0.8.md)
+- [ ] Domain-layer unit tests — still open; real-DB repository tests
+      closed under [Phase-0.8.md](./Phase-0.8.md)
 
 ## Completed Work
 

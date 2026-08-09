@@ -40,22 +40,24 @@ is platform infrastructure, not PINChat feature work)
 Documentation, architecture, and infrastructure are being established
 before PINChat feature implementation begins. Real infrastructure code
 exists as of Milestone 0.5; Milestone 0.6 built the Identity bounded
-context's domain/application layers; Milestone 0.7 exposes it as a
-real, tested HTTP API.
+context's domain/application layers; Milestone 0.7 exposed it as a
+real, tested HTTP API; Milestone 0.8 verified all of it against a real
+PostgreSQL instance.
 
 ## Current Milestone
 
-**Milestone 0.7 — Identity HTTP/API Layer** (in progress)
+**Milestone 0.8 — Real PostgreSQL Integration & Repository Verification** (complete)
 
-All 9 planned Identity endpoints (`/auth/{register,login,logout,
-refresh,change-credential,trust-device,me,devices}` +
-`DELETE /auth/trust-device/:id`) are implemented, wired through
-OpenAPIHono, documented live at `GET /docs`/`GET /openapi.json`, and
-covered by a real Vitest integration suite (16 tests, all passing).
-Three new ADRs (0023–0025 already existed from 0.6; no new ADR numbers
-this milestone — ADR-0025 was _resolved_, not superseded). The
-credential/PIN naming conflict from Milestone 0.6 is now resolved (see
-ADR-0025).
+The Identity schema, migration, and every Drizzle-backed repository
+are now verified against a real PostgreSQL instance (local Docker,
+`docker-compose.yml`), not just the in-memory fakes Milestones 0.6/0.7
+were limited to. New opt-in `pnpm test:db` (21 tests: 15 repository,
+6 HTTP-integration) runs separately from `pnpm test`, which stays
+database-free at 16/16. Real-database testing surfaced one genuine
+concurrency bug — a refresh-token rotation race — fixed with an atomic
+conditional `revoke()`; see
+[Phase-0.8.md](./docs/phases/Phase-0.8.md) and
+[Session-Management.md](./docs/security/Session-Management.md#concurrent-rotation-milestone-08).
 
 ## Active Tasks
 
@@ -70,19 +72,17 @@ ADR-0025).
 - [ ] Add automated dependency-rule enforcement (`eslint-plugin-boundaries`
       or equivalent) — currently code-review-only, see ADR-0019
 - [ ] Expand the Vitest suite to the domain layer directly (unit tests
-      for Username/Credential/session-lifetime/lockout-policy) and to
-      repositories once a live database is available — current
-      coverage is HTTP-integration-level only
+      for Username/Credential/session-lifetime/lockout-policy in
+      isolation) — repository-level and HTTP-level real-database
+      coverage landed in Milestone 0.8; pure domain-function unit
+      tests are still open
 - [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
-- [ ] Verify `apps/server` against a real PostgreSQL instance (health
-      check's DB branch, `packages/database`'s migrate/seed scripts,
-      and every Identity repository are implemented but untested
-      against a live database — none was available in this environment)
 - [ ] Move the in-memory rate limiter to a shared store (e.g. Redis)
       before horizontal scaling — see ADR/TODO
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.7 are all
-      verified/reviewed
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.8 are all
+      verified/reviewed (0.9 Social/Friendship + BlueMoon Token comes
+      first per current founder direction, not yet scoped in this repo)
 
 ## Completed Tasks
 
@@ -223,6 +223,29 @@ change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
 - [x] Docs updated: `Authentication.md`, `Session-Management.md`, PRD,
       this file, `ROADMAP.md`, Engineering Journal, `CHANGELOG.md`,
       `Phase-0.7.md`
+
+**Milestone 0.8 — Real PostgreSQL Integration & Repository Verification**
+
+- [x] `docker-compose.yml`: local disposable PostgreSQL for
+      development and integration testing
+- [x] Real-database test harness (`test-utils/real-db.ts`) + opt-in
+      `pnpm test:db`, fully separate from `pnpm test`
+- [x] 15 repository-level integration tests: unique/FK/index
+      constraints, CRUD round-trips, cascade delete, connection-pool
+      concurrency
+- [x] 6 HTTP-level integration tests: registration, lockout, refresh
+      rotation + reuse detection, trust-device, change-credential,
+      logout — through the real Drizzle-backed container
+- [x] Migration verified to apply cleanly to a fresh database; all
+      tables/FKs/constraints/indexes confirmed present via `psql`
+- [x] Found and fixed a real refresh-token rotation race (concurrent
+      requests could both rotate the same token) with an atomic
+      conditional `revoke()` — see `Session-Management.md`
+- [x] Full quality gate green; `pnpm test` unchanged at 16/16,
+      `pnpm test:db` 21/21
+- [x] Docs updated: `Phase-0.8.md`, `Session-Management.md`,
+      `Identity-Schema.md`, this file, `ROADMAP.md`, `TODO.md`,
+      `CHANGELOG.md`, Engineering Journal, `.env.example`
 
 ## Engineering Principles
 

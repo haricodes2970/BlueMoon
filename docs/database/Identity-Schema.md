@@ -1,6 +1,6 @@
 # Identity Schema
 
-**Status: Draft v1 — authored 2026-07-25, pending review**
+**Status: Draft v1 — authored 2026-07-25, pending review. Schema, migration, and constraints verified against a real PostgreSQL instance in Milestone 0.8 (see docs/phases/Phase-0.8.md) — "pending review" refers to founder sign-off, not technical correctness.**
 
 Documents the seven tables implemented in
 `packages/database/src/schema/` for the Identity bounded context

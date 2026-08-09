@@ -15,18 +15,15 @@ and remove it on the next pass rather than letting completed items pile up.
       confirm CI passes on an actual PR (blocks Milestone 0.3 close-out)
 - [ ] Founder review and sign-off on all five Milestone 0.4 architecture
       documents (System/Package/Dependency-Rules/Backend/Frontend)
-- [ ] Verify `apps/server` (including the full Identity schema/
-      repositories/HTTP layer) against a real PostgreSQL instance —
-      none was available in this environment (blocks Milestone 0.5 and
-      0.7 close-out)
 
 ## Next (before Milestone 1.0 implementation starts)
 
 - [ ] Expand Vitest coverage to the domain layer directly (unit tests
       for Username/Credential/session-lifetime/lockout-policy — pure
-      functions, no infra needed) and to repositories once a live
-      database is available — current coverage (16 tests) is
-      HTTP-integration-level only, against in-memory fakes
+      functions, no infra needed). Repository-level and HTTP-level
+      real-database coverage landed in Milestone 0.8
+      (`pnpm test:db`, 21 tests) — see
+      [Phase-0.8.md](./docs/phases/Phase-0.8.md)
 - [ ] Add automated dependency-rule enforcement — `eslint-plugin-boundaries`
       or equivalent in `tooling/eslint-config`, configured against
       [Dependency-Rules.md](./docs/architecture/Dependency-Rules.md)
@@ -49,7 +46,7 @@ and remove it on the next pass rather than letting completed items pile up.
       as a future capability; explicitly not implemented until the
       friendship milestone
 - [ ] Validate the three hypothesis personas with real user research
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.7 are all
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.8 are all
       actually closed out
 
 ## See Also

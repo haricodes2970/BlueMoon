@@ -174,6 +174,82 @@ Next
 
 ---
 
+## 2026-08-09
+
+Milestone 0.8
+
+Completed
+
+- docker-compose.yml: local disposable PostgreSQL for development and
+  integration testing
+- Real-database test harness (apps/server/src/test-utils/real-db.ts):
+  TEST_DATABASE_URL/DATABASE_URL detection, identity-table reset
+  between tests
+- vitest.integration.config.ts + vitest.config.ts exclusion, so real-
+  database tests never run under plain `pnpm test`; new opt-in
+  `pnpm test:db` script (root, apps/server, turbo.json)
+- 15 repository-level integration tests: unique username/token-hash
+  constraints, FK rejection, device unique(user,fingerprint), cascade
+  delete on user deletion, trusted-device/session/login-attempt/audit
+  round-trips, 20-way concurrent-query pooling test
+- 6 HTTP-level integration tests reusing the exact createApp/routes/
+  controllers/services code with a real Drizzle-backed container
+  instead of the in-memory fake: registration + duplicate rejection,
+  5-attempt lockout, refresh rotation + reuse detection, trust-device,
+  change-credential, logout
+- Migration (0000_lame_deadpool.sql) verified to apply cleanly to a
+  fresh database; confirmed via psql: 7 tables, 5 FKs with designed
+  CASCADE/SET NULL behavior, both unique constraints, all 13 indexes
+- Full quality gate re-verified green after all changes: install,
+  build, lint, type-check, test (16/16, unchanged), format:check
+- Docs updated: Phase-0.8.md (new), Session-Management.md (Concurrent
+  Rotation section), Identity-Schema.md (verification note), CLAUDE.md,
+  ROADMAP.md (0.5/0.7 marked Complete, 0.8 added), TODO.md,
+  CHANGELOG.md, this entry, apps/server/.env.example
+
+Decisions
+
+- Real-database tests split into a separate `*.integration.test.ts`
+  naming convention + separate vitest config, rather than adding
+  environment-detection skip logic to the existing test files --
+  keeps `pnpm test` unconditionally database-free (needed for CI,
+  which provisions no Postgres service) without any risk of an
+  integration test accidentally running there
+- Fixed the refresh-token rotation race with an atomic conditional
+  UPDATE (WHERE revoked_at IS NULL ... RETURNING) rather than wrapping
+  the service-layer rotation in an explicit db.transaction() -- the
+  repository/service dependency-injection boundary (services depend on
+  repository interfaces, not a raw db handle) would have needed
+  restructuring to thread a transaction through; the atomic update
+  achieves the same correctness guarantee for this specific race with
+  a much smaller, purely additive change
+
+Problems
+
+- Real correctness bug found by real-Postgres testing that the in-
+  memory fakes structurally could not have caught: two concurrent
+  refresh requests presenting the same still-active token could both
+  pass the active check and both rotate it (RefreshTokenRepository
+  .revoke(id) was an unconditional UPDATE), producing two valid
+  children of one parent token and defeating the single-child-per-
+  parent invariant reuse detection depends on
+- Initial integration-test bug (test code, not product code): default
+  generated usernames used a raw UUID, exceeding users.username's
+  varchar(20) -- caught immediately by the first real-Postgres test
+  run
+
+Next
+
+- Domain-layer unit tests (pure Username/Credential/session-lifetime/
+  lockout-policy tests) -- still open, not addressed this milestone
+- Automated dependency-rule enforcement (eslint-plugin-boundaries)
+- Still pending: real product docs, founder review of architecture
+  docs, PRD, and Milestone 0.4 documents
+- Milestone 0.9 (Social/Friendship + BlueMoon Token) per current
+  founder direction -- not yet scoped in this repository's ROADMAP.md
+
+---
+
 ## 2026-07-25
 
 Milestone 0.6

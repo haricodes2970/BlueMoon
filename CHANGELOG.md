@@ -113,6 +113,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`apps/server/src/routes/identity/auth.routes.test.ts`) plus a
   reusable in-memory fake-repository test harness
   (`apps/server/src/test-utils/fake-identity-container.ts`).
+- Milestone 0.8: `docker-compose.yml` (local disposable PostgreSQL),
+  real-database test harness (`apps/server/src/test-utils/real-db.ts`),
+  `apps/server/vitest.integration.config.ts`, and a new opt-in
+  `pnpm test:db` script (root + `apps/server` + `turbo.json`),
+  deliberately kept separate from `pnpm test`.
+- 15 real-PostgreSQL repository integration tests
+  (`apps/server/src/repositories/identity/identity-repositories.integration.test.ts`):
+  unique/FK/index constraints, CRUD round-trips, cascade delete on
+  user deletion, refresh-token concurrent-revoke behavior, connection-
+  pool concurrency.
+- 6 real-PostgreSQL HTTP integration tests
+  (`apps/server/src/routes/identity/auth.routes.integration.test.ts`):
+  registration/duplicate-username, lockout, refresh rotation + reuse
+  detection, trust-device, change-credential, logout.
 
 ### Changed
 
@@ -156,6 +170,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   range (4–8) unchanged. `Authentication.md`, `Session-Management.md`,
   the PRD, `CLAUDE.md`, `ROADMAP.md` (Milestone 0.6 marked Complete),
   `DECISIONS.md`, and the Engineering Journal updated for Milestone 0.7.
+- `RefreshTokenRepository.revoke(id)` return type changed from `void`
+  to `RefreshToken | null` (atomic conditional update — see Fixed,
+  below); `refresh-session.service.ts` and
+  `fake-identity-container.ts` updated to match.
+- `ROADMAP.md`: Milestone 0.5 and 0.7 marked Complete (their sole open
+  item, live-database verification, closed under Milestone 0.8);
+  Milestone 0.8 added; Progress Summary and Next Objective updated.
+  `CLAUDE.md`, `TODO.md`, and the Engineering Journal updated for
+  Milestone 0.8. `docs/security/Session-Management.md` and
+  `docs/database/Identity-Schema.md` updated with verification notes.
 
 ### Fixed
 
@@ -186,3 +210,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default, not inside `outDir`, so `rm -rf dist` (used ad hoc in
   Milestones 0.5/0.6) never invalidated it and `tsc` sometimes silently
   skipped re-emitting files it wrongly believed were still current.
+- Refresh-token rotation race (Milestone 0.8, found via real-Postgres
+  testing): two concurrent requests presenting the same still-active
+  refresh token could both pass the active check and both rotate it,
+  producing two valid children of one parent token.
+  `RefreshTokenRepository.revoke(id)` is now an atomic conditional
+  `UPDATE ... WHERE revoked_at IS NULL ... RETURNING`; the loser of
+  the race gets `null` back and `refresh-session.service.ts` now
+  treats that identically to detected reuse (kills the session).
+- Root `pnpm test:db` silently skipped every test: Turbo strips
+  environment variables from a task's shell unless declared in that
+  task's `env` list, so `TEST_DATABASE_URL`/`DATABASE_URL` never
+  reached `vitest`. `turbo.json`'s `test:db` task now declares both.
+  Found by running `pnpm test:db` against a fresh disposable database
+  as part of closing Milestone 0.8, not by `pnpm --filter @bluemoon/server
+test:db`, which bypasses Turbo and had masked the gap.

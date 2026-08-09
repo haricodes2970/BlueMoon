@@ -1,6 +1,6 @@
 # Phase 0.5 — Core Infrastructure
 
-**Status: In Progress — pending live-database verification** | **Dates:** 2026-07-25
+**Status: Complete** | **Dates:** 2026-07-25 (live-database verification closed under [Phase-0.8.md](./Phase-0.8.md), 2026-08-09)
 
 ## Purpose
 
@@ -94,7 +94,8 @@ ADR-0020 (logging), ADR-0021 (configuration), ADR-0022 (error handling).
 No live PostgreSQL instance available in this environment —
 `packages/database`'s connection/migrate/seed code type-checks and
 `drizzle-kit generate` ran successfully against the (then-empty)
-schema, but actual connectivity was never verified. CI has only been
+schema, but actual connectivity was never verified (closed under
+[Phase-0.8.md](./Phase-0.8.md)). CI has only been
 verified via local equivalents of its jobs, not an actual GitHub
 Actions run. One commit (`fix(eslint): ignore next-env.d.ts globally`)
 ended up bundling the full `apps/web` implementation too — a failed

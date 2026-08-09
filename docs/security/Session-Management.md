@@ -100,6 +100,27 @@ after a reuse-triggered session kill, even the _legitimately
 rotated-forward_ token stops working — the whole session is dead, not
 just the stolen/reused token.
 
+### Concurrent Rotation (Milestone 0.8)
+
+Real-database testing surfaced a TOCTOU gap the in-memory fakes
+couldn't: two concurrent requests presenting the same still-active
+token could both pass the "is this active?" check and both proceed to
+rotate it, producing two valid children of one parent token —
+`RefreshTokenRepository.revoke(id)` was an unconditional `UPDATE`, so
+neither request could tell it had raced the other.
+
+Fixed by making `revoke(id)` an atomic conditional update
+(`WHERE revoked_at IS NULL ... RETURNING`) that returns the revoked
+row only to whichever caller's `UPDATE` actually flipped it, `null` to
+the other. `refresh-session.service.ts` now checks this: a `null`
+result is treated identically to detected reuse — the entire session
+is killed — since it's the same underlying signal (two presentations
+of one token), just caught earlier via the race instead of via a
+second explicit reuse. Verified against a real PostgreSQL instance
+with two concurrent `revoke()` calls on one token (see
+`identity-repositories.integration.test.ts`); Postgres's row-level
+locking guarantees exactly one wins.
+
 ## Revocation
 
 Three paths, all ending in the same state (session + every refresh
