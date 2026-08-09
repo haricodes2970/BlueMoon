@@ -35,6 +35,7 @@ the point.
 | [0023](./docs/adr/ADR-0023-identity-domain-model.md)     | Identity Domain Model — Separate Bounded Context from PINChat's Session Code        | Accepted |
 | [0024](./docs/adr/ADR-0024-session-strategy.md)          | Session Strategy — Short-Lived JWT + Rotating Opaque Refresh Token                  | Accepted |
 | [0025](./docs/adr/ADR-0025-credential-authentication.md) | Credential-Based Authentication (Numeric Secret, Argon2id)                          | Accepted |
+| [0026](./docs/adr/ADR-0026-blue-moon-token.md)           | BlueMoon Token — Atomic Single-Use Consumption, Separate from Auth Infrastructure   | Accepted |
 
 ## Adding a New ADR
 

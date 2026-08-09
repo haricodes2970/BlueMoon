@@ -127,6 +127,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`apps/server/src/routes/identity/auth.routes.integration.test.ts`):
   registration/duplicate-username, lockout, refresh rotation + reuse
   detection, trust-device, change-credential, logout.
+- Milestone 0.9: Social bounded context. `blue_moon_tokens` and
+  `friendships` Drizzle schema + migration; domain entities/errors/
+  rules (`apps/server/src/domain/social`); infrastructure for
+  cryptographically random token generation/hashing, deliberately
+  separate from Identity's auth-token infrastructure
+  (`apps/server/src/infrastructure/social`); repositories including
+  the atomic transactional `consumeTokenAndCreateFriendship`
+  (`apps/server/src/repositories/social`); application services for
+  generate/consume/list/remove (`apps/server/src/services/social`);
+  `apps/server/src/social-container.ts` composition root.
+- 4 new Social HTTP endpoints: `POST /social/blue-moon-tokens`,
+  `POST /social/friendships`, `GET /social/friendships`,
+  `DELETE /social/friendships/{id}` — OpenAPI-documented,
+  authenticated (reuses Identity's `requireAuth`), rate limited.
+- 18 fake-container Social HTTP tests
+  (`apps/server/src/routes/social/friendships.routes.test.ts`) plus a
+  reusable in-memory fake (`apps/server/src/test-utils/fake-social-container.ts`).
+- 14 real-PostgreSQL Social repository tests
+  (`apps/server/src/repositories/social/social-repositories.integration.test.ts`)
+  and 4 real-PostgreSQL Social HTTP tests
+  (`apps/server/src/routes/social/friendships.routes.integration.test.ts`),
+  including a concurrent-token-consumption test proving exactly one
+  request succeeds.
+- ADR-0026: BlueMoon Token atomic single-use consumption, kept
+  separate from authentication infrastructure.
+- `docs/database/Social-Schema.md`, `docs/security/Social.md`,
+  `docs/phases/Phase-0.9.md`.
 
 ### Changed
 
@@ -180,6 +207,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CLAUDE.md`, `TODO.md`, and the Engineering Journal updated for
   Milestone 0.8. `docs/security/Session-Management.md` and
   `docs/database/Identity-Schema.md` updated with verification notes.
+- `apps/server/src/test-utils/real-db.ts`'s `resetIdentityTables`
+  renamed `resetAllTables` (also truncates the two new Social tables);
+  the two Milestone 0.8 integration test files updated to match,
+  behavior otherwise unchanged.
+- `apps/server/src/app.ts` refactored to build one shared `Database`
+  instance from `DATABASE_URL` and pass it to both
+  `createIdentityContainer` and `createSocialContainer`, instead of
+  each container opening its own connection pool; also now mounts
+  `/social/*` routes.
+- `ROADMAP.md`: Milestone 0.9 added, Progress Summary and Next
+  Objective updated. `CLAUDE.md`, `TODO.md`, `DECISIONS.md` (ADR-0026
+  indexed), and the Engineering Journal updated for Milestone 0.9.
+  `docs/database/README.md` and `docs/security/README.md` link the
+  new Social docs.
+- `docs/product/Product-Requirements-Document.md`: BlueMoon Token
+  status updated from "documented, not implemented" to implemented;
+  Open Question #4 resolved (both participants must be existing
+  BlueMoon accounts) — status/roadmap notes only, requirements
+  unchanged.
 
 ### Fixed
 
@@ -225,3 +271,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Found by running `pnpm test:db` against a fresh disposable database
   as part of closing Milestone 0.8, not by `pnpm --filter @bluemoon/server
 test:db`, which bypasses Turbo and had masked the gap.
+- `routes/social/index.ts`: Hono's `app.use(path, middleware)` matches
+  every HTTP method on that path, so the initial wiring would have
+  applied the `POST /social/friendships` (consume) rate limiter to
+  `GET /social/friendships` (list) requests too, sharing one quota
+  across an authenticated read and a guessing-relevant write. Fixed
+  with a small `onlyForMethod` middleware wrapper scoping the limiter
+  to `POST` only.

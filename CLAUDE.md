@@ -42,22 +42,28 @@ before PINChat feature implementation begins. Real infrastructure code
 exists as of Milestone 0.5; Milestone 0.6 built the Identity bounded
 context's domain/application layers; Milestone 0.7 exposed it as a
 real, tested HTTP API; Milestone 0.8 verified all of it against a real
-PostgreSQL instance.
+PostgreSQL instance; Milestone 0.9 added the Social bounded context
+(BlueMoon Token + friendship) on top of it.
 
 ## Current Milestone
 
-**Milestone 0.8 — Real PostgreSQL Integration & Repository Verification** (complete)
+**Milestone 0.9 — Social / Friendship + BlueMoon Token** (complete)
 
-The Identity schema, migration, and every Drizzle-backed repository
-are now verified against a real PostgreSQL instance (local Docker,
-`docker-compose.yml`), not just the in-memory fakes Milestones 0.6/0.7
-were limited to. New opt-in `pnpm test:db` (21 tests: 15 repository,
-6 HTTP-integration) runs separately from `pnpm test`, which stays
-database-free at 16/16. Real-database testing surfaced one genuine
-concurrency bug — a refresh-token rotation race — fixed with an atomic
-conditional `revoke()`; see
-[Phase-0.8.md](./docs/phases/Phase-0.8.md) and
-[Session-Management.md](./docs/security/Session-Management.md#concurrent-rotation-milestone-08).
+The BlueMoon Token is now the only mechanism that creates a friendship
+between two BlueMoon accounts — a username alone is never sufficient.
+Generation is owner-only (`ownerId` always from the session, never a
+request field); consumption is single-use, expires after 300 seconds,
+and is enforced by one atomic conditional `UPDATE` (not check-then-
+update) inside a transaction that also creates the friendship —
+verified against real PostgreSQL with two concurrent consumption
+requests for the same token resolving to exactly one success. Reuses
+Identity's `UserRepository` and `requireAuth` middleware unmodified;
+deliberately does not reuse Identity's auth-token infrastructure for
+the BlueMoon Token itself (see
+[ADR-0026](./docs/adr/ADR-0026-blue-moon-token.md)). `pnpm test`
+stays database-free at 34/34 (16 Identity + 18 Social); `pnpm test:db`
+at 39/39. See [Phase-0.9.md](./docs/phases/Phase-0.9.md) and
+[Social.md](./docs/security/Social.md).
 
 ## Active Tasks
 
@@ -72,17 +78,17 @@ conditional `revoke()`; see
 - [ ] Add automated dependency-rule enforcement (`eslint-plugin-boundaries`
       or equivalent) — currently code-review-only, see ADR-0019
 - [ ] Expand the Vitest suite to the domain layer directly (unit tests
-      for Username/Credential/session-lifetime/lockout-policy in
-      isolation) — repository-level and HTTP-level real-database
-      coverage landed in Milestone 0.8; pure domain-function unit
-      tests are still open
+      for Username/Credential/session-lifetime/lockout-policy/
+      BlueMoon-Token-lifetime in isolation) — repository-level and
+      HTTP-level real-database coverage landed in Milestones 0.8/0.9;
+      pure domain-function unit tests are still open
 - [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
 - [ ] Move the in-memory rate limiter to a shared store (e.g. Redis)
       before horizontal scaling — see ADR/TODO
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.8 are all
-      verified/reviewed (0.9 Social/Friendship + BlueMoon Token comes
-      first per current founder direction, not yet scoped in this repo)
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 and 0.4 (founder
+      document/architecture sign-off) are resolved — 0.5 through 0.9
+      are engineering-complete
 
 ## Completed Tasks
 
@@ -247,6 +253,28 @@ change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
       `Identity-Schema.md`, this file, `ROADMAP.md`, `TODO.md`,
       `CHANGELOG.md`, Engineering Journal, `.env.example`
 
+**Milestone 0.9 — Social / Friendship + BlueMoon Token**
+
+- [x] `blue_moon_tokens`, `friendships` Drizzle schema + migration,
+      verified against a fresh PostgreSQL instance
+- [x] Domain/application/infrastructure/repository/HTTP layers for
+      the Social bounded context, following Identity's conventions
+- [x] BlueMoon Token: random generation, hashed at rest, 300-second
+      expiry, single-use via one atomic conditional `UPDATE`
+- [x] Friendship: created only by token consumption, undirected,
+      duplicate-proof via a canonical-order check constraint
+- [x] `app.ts` refactored to share one `Database` instance across
+      Identity and Social
+- [x] 18 fake-container HTTP tests (`pnpm test` 34/34, database-free)
+- [x] 14 real-Postgres repository tests + 4 HTTP tests
+      (`pnpm test:db` 39/39), including a concurrent-consumption test
+      proving exactly one success
+- [x] ADR-0026 (BlueMoon Token security model)
+- [x] Full quality gate green
+- [x] Docs updated: `Phase-0.9.md`, `Social-Schema.md`, `Social.md`,
+      this file, `ROADMAP.md`, `TODO.md`, `CHANGELOG.md`, Engineering
+      Journal, PRD status note
+
 ## Engineering Principles
 
 - Optimize for maintainability, scalability, readability, security, and
@@ -286,26 +314,26 @@ Root navigation files (quick orientation for humans and AI agents):
 [DECISIONS.md](./DECISIONS.md), [TODO.md](./TODO.md). These are thin
 indexes — full content stays in `/docs`.
 
-| Area                                                            | Path                                                                                                                                                   |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Product (source of truth)                                       | [`docs/product`](./docs/product)                                                                                                                       |
-| Product Requirements Document (canonical implementation spec)   | [`docs/product/Product-Requirements-Document.md`](./docs/product/Product-Requirements-Document.md)                                                     |
-| Architecture overview & tech stack                              | [`docs/architecture`](./docs/architecture)                                                                                                             |
-| ADR log (25 records as of Milestone 0.7)                        | [`docs/adr`](./docs/adr)                                                                                                                               |
-| System / Package / Dependency / Backend / Frontend architecture | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)                                          |
-| Security (Identity auth, session management)                    | [`docs/security`](./docs/security)                                                                                                                     |
-| Database (Identity schema)                                      | [`docs/database`](./docs/database)                                                                                                                     |
-| Engineering standards                                           | [`docs/engineering`](./docs/engineering)                                                                                                               |
-| Engineering journal (chronological milestone log)               | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md)                                                                 |
-| Per-milestone phase documents                                   | [`docs/phases`](./docs/phases)                                                                                                                         |
-| Environment variable strategy                                   | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md)                                                               |
-| Frontend / API / Deployment                                     | `docs/{frontend,api,deployment}` — index stubs only, populated as each area is implemented                                                             |
-| Meeting notes                                                   | [`docs/meeting-notes`](./docs/meeting-notes)                                                                                                           |
-| Workspace apps                                                  | [`apps/`](./apps) — `web` (Next.js shell), `server` (Hono, now includes the full Identity domain/application layers, no HTTP routes for it yet)        |
-| Workspace packages                                              | [`packages/`](./packages) — `types`, `utils`, `config`, `database` implemented; `auth` placeholder exports only; `ui` empty placeholder (out of scope) |
-| Shared tooling                                                  | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config`                                                                      |
-| Roadmap                                                         | [`ROADMAP.md`](./ROADMAP.md)                                                                                                                           |
-| Changelog                                                       | [`CHANGELOG.md`](./CHANGELOG.md)                                                                                                                       |
+| Area                                                               | Path                                                                                                                                                   |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Product (source of truth)                                          | [`docs/product`](./docs/product)                                                                                                                       |
+| Product Requirements Document (canonical implementation spec)      | [`docs/product/Product-Requirements-Document.md`](./docs/product/Product-Requirements-Document.md)                                                     |
+| Architecture overview & tech stack                                 | [`docs/architecture`](./docs/architecture)                                                                                                             |
+| ADR log (26 records as of Milestone 0.9)                           | [`docs/adr`](./docs/adr)                                                                                                                               |
+| System / Package / Dependency / Backend / Frontend architecture    | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)                                          |
+| Security (Identity auth/session management, Social/BlueMoon Token) | [`docs/security`](./docs/security)                                                                                                                     |
+| Database (Identity + Social schema)                                | [`docs/database`](./docs/database)                                                                                                                     |
+| Engineering standards                                              | [`docs/engineering`](./docs/engineering)                                                                                                               |
+| Engineering journal (chronological milestone log)                  | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md)                                                                 |
+| Per-milestone phase documents                                      | [`docs/phases`](./docs/phases)                                                                                                                         |
+| Environment variable strategy                                      | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md)                                                               |
+| Frontend / API / Deployment                                        | `docs/{frontend,api,deployment}` — index stubs only, populated as each area is implemented                                                             |
+| Meeting notes                                                      | [`docs/meeting-notes`](./docs/meeting-notes)                                                                                                           |
+| Workspace apps                                                     | [`apps/`](./apps) — `web` (Next.js shell), `server` (Hono; full Identity and Social domain/application/HTTP layers, `/auth/*` and `/social/*`)         |
+| Workspace packages                                                 | [`packages/`](./packages) — `types`, `utils`, `config`, `database` implemented; `auth` placeholder exports only; `ui` empty placeholder (out of scope) |
+| Shared tooling                                                     | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config`                                                                      |
+| Roadmap                                                            | [`ROADMAP.md`](./ROADMAP.md)                                                                                                                           |
+| Changelog                                                          | [`CHANGELOG.md`](./CHANGELOG.md)                                                                                                                       |
 
 ## Repository Conventions
 

@@ -225,9 +225,38 @@ repositories, application services, HTTP API) proven against a real
 PostgreSQL instance, not just in-memory fakes — met. See
 [Phase-0.8.md](./docs/phases/Phase-0.8.md) for the full writeup.
 
+## Milestone 0.9 — Social / Friendship + BlueMoon Token
+
+**Status: Complete**
+
+- [x] `blue_moon_tokens`, `friendships` Drizzle schema + migration,
+      verified against a fresh PostgreSQL instance
+- [x] Domain/application/infrastructure/repository/HTTP layers for
+      the Social bounded context, matching Identity's conventions
+- [x] BlueMoon Token: random generation, hashed at rest, 300-second
+      expiry, single-use enforced by one atomic conditional `UPDATE`
+      (not check-then-update)
+- [x] Friendship: created only by token consumption (never by
+      username alone), undirected, duplicate-proof via a canonical-
+      order check constraint
+- [x] `app.ts` refactored to share one `Database` instance across
+      Identity and Social (no second connection pool)
+- [x] 18 fake-container HTTP tests (`pnpm test` stays database-free,
+      34/34 total with Identity)
+- [x] 14 real-Postgres repository tests + 4 HTTP tests via
+      `pnpm test:db` (39/39 total with Identity), including a
+      concurrent-consumption test proving exactly one success
+- [x] ADR-0026 (BlueMoon Token security model)
+- [x] Full quality gate green
+
+**Completion criteria:** username + BlueMoon Token is the only path to
+a friendship, token security properties (single-use, 300s expiry,
+atomic under concurrency) verified against a real database — met. See
+[Phase-0.9.md](./docs/phases/Phase-0.9.md) for the full writeup.
+
 ## Milestone 1.0 — PINChat MVP
 
-**Status: Blocked** (depends on 0.2 through 0.8)
+**Status: Blocked** (depends on 0.2 through 0.9)
 
 - [ ] Session/PIN issuance and join flow (Journey 1)
 - [ ] Group session lifecycle (Journey 2)
@@ -254,6 +283,7 @@ are implemented end-to-end and match the V1 scope in
 | 0.6 Identity & Auth Foundation                      | Complete                                   | 100%     |
 | 0.7 Identity HTTP/API Layer                         | Complete                                   | 100%     |
 | 0.8 Real PostgreSQL Integration & Repo Verification | Complete                                   | 100%     |
+| 0.9 Social / Friendship + BlueMoon Token            | Complete                                   | 100%     |
 | 1.0 PINChat MVP                                     | Blocked                                    | 0%       |
 
 ## Next Objective
@@ -262,10 +292,10 @@ Receiving the founder's actual approved product documents remains the
 single biggest blocker, unchanged since Milestone 0.2. In parallel: get
 founder sign-off on Milestone 0.4 architecture docs and the new PRD,
 and verify CI on an actual GitHub Actions run. Engineering-side,
-Milestones 0.5 through 0.8 are now closed — live-database verification
-and real-database repository tests are done (see
-[Phase-0.8.md](./docs/phases/Phase-0.8.md)). Remaining engineering gaps
+Milestones 0.5 through 0.9 are now closed — live-database verification,
+real-database repository tests, and the Social/BlueMoon Token layer are
+all done (see [Phase-0.8.md](./docs/phases/Phase-0.8.md) and
+[Phase-0.9.md](./docs/phases/Phase-0.9.md)). Remaining engineering gaps
 before Milestone 1.0: domain-layer unit tests (pure `Username`/
-`Credential`/session-lifetime/lockout-policy tests), automated
-dependency-rule enforcement, and Milestone 0.9 (Social/Friendship +
-BlueMoon Token) is not yet scoped in this document.
+`Credential`/session-lifetime/lockout-policy/BlueMoon-Token-lifetime
+tests), automated dependency-rule enforcement.

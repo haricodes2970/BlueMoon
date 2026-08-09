@@ -19,11 +19,12 @@ and remove it on the next pass rather than letting completed items pile up.
 ## Next (before Milestone 1.0 implementation starts)
 
 - [ ] Expand Vitest coverage to the domain layer directly (unit tests
-      for Username/Credential/session-lifetime/lockout-policy — pure
-      functions, no infra needed). Repository-level and HTTP-level
-      real-database coverage landed in Milestone 0.8
-      (`pnpm test:db`, 21 tests) — see
-      [Phase-0.8.md](./docs/phases/Phase-0.8.md)
+      for Username/Credential/session-lifetime/lockout-policy/
+      BlueMoon-Token-lifetime — pure functions, no infra needed).
+      Repository-level and HTTP-level real-database coverage landed
+      in Milestones 0.8/0.9 (`pnpm test:db`, 39 tests) — see
+      [Phase-0.8.md](./docs/phases/Phase-0.8.md),
+      [Phase-0.9.md](./docs/phases/Phase-0.9.md)
 - [ ] Add automated dependency-rule enforcement — `eslint-plugin-boundaries`
       or equivalent in `tooling/eslint-config`, configured against
       [Dependency-Rules.md](./docs/architecture/Dependency-Rules.md)
@@ -41,13 +42,10 @@ and remove it on the next pass rather than letting completed items pile up.
 
 ## Later
 
-- [ ] Implement BlueMoon Token (friend-request capability) — documented
-      in the [PRD](./docs/product/Product-Requirements-Document.md#bluemoon-token)
-      as a future capability; explicitly not implemented until the
-      friendship milestone
 - [ ] Validate the three hypothesis personas with real user research
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 through 0.8 are all
-      actually closed out
+- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 and 0.4 (founder
+      document/architecture sign-off) are actually closed out — 0.5
+      through 0.9 are engineering-complete
 
 ## See Also
 

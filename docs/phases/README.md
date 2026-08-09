@@ -17,6 +17,7 @@ lessons learned) for that specific milestone.
 | [Phase-0.6.md](./Phase-0.6.md) | Identity & Authentication Foundation                  | Complete    |
 | [Phase-0.7.md](./Phase-0.7.md) | Identity HTTP/API Layer                               | Complete    |
 | [Phase-0.8.md](./Phase-0.8.md) | Real PostgreSQL Integration & Repository Verification | Complete    |
+| [Phase-0.9.md](./Phase-0.9.md) | Social / Friendship + BlueMoon Token                  | Complete    |
 
 See [ROADMAP.md](../../ROADMAP.md) for milestone-level status and
 completion criteria — these phase documents are the detailed record

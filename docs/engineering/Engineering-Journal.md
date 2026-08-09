@@ -250,6 +250,106 @@ Next
 
 ---
 
+## 2026-08-09
+
+Milestone 0.9
+
+Completed
+
+- blue_moon_tokens, friendships Drizzle schema + migration
+  (0001_amusing_the_executioner.sql), verified against a fresh
+  PostgreSQL instance: all constraints, FKs, unique constraints, the
+  canonical-pair check constraint, and indexes confirmed via psql
+- Social domain layer (apps/server/src/domain/social): BlueMoonToken/
+  Friendship entities, canonicalizePair/otherParticipant helpers,
+  BLUE_MOON_TOKEN_TTL_MS = 300_000, typed errors deliberately generic
+  where anti-enumeration matters
+- Social infrastructure (apps/server/src/infrastructure/social):
+  token generation/hashing -- same pattern as refresh tokens (32
+  random bytes, SHA-256) but a separate module, per the product
+  requirement that this is not authentication infrastructure -- plus
+  a dedicated audit writer
+- Social repositories (apps/server/src/repositories/social):
+  BlueMoonTokenRepository (creation only) and FriendshipRepository,
+  including consumeTokenAndCreateFriendship -- one atomic conditional
+  UPDATE (WHERE consumed_at IS NULL AND expires_at > now()) plus an
+  ON CONFLICT DO NOTHING friendship insert, both inside one
+  db.transaction()
+- Social application services (apps/server/src/services/social):
+  generate (owner always from the session), consume (resolves
+  username, rejects self-consumption before touching the database,
+  one generic error for every failure mode), list, remove
+- social-container.ts composition root; app.ts refactored to build
+  one shared Database instance for both Identity and Social
+  containers instead of two connection pools
+- 4 HTTP endpoints (routes/social, controllers/social): POST
+  /social/blue-moon-tokens, POST /social/friendships, GET
+  /social/friendships, DELETE /social/friendships/{id} -- reuses
+  Identity's requireAuth unmodified, rate limited
+- 18 fake-container HTTP tests (friendships.routes.test.ts) -- pnpm
+  test stays database-free at 34/34 (16 Identity + 18 Social)
+- 14 real-Postgres repository tests + 4 real-Postgres HTTP tests --
+  pnpm test:db at 39/39, including a concurrent-consumption test
+  (two simultaneous requests for the same token) proving exactly one
+  succeeds, both at the repository level and through the HTTP API
+- ADR-0026 (BlueMoon Token: atomic single-use consumption, separate
+  from auth infrastructure)
+- Full quality gate green: install, build, lint, type-check,
+  format:check, test (34/34), test:db (39/39, run twice independently
+  with identical results)
+- Docs updated: Phase-0.9.md (new), Social-Schema.md (new), Social.md
+  (new), CLAUDE.md, ROADMAP.md, TODO.md, CHANGELOG.md, DECISIONS.md,
+  this entry, docs/database/README.md, docs/security/README.md, PRD
+  status note
+
+Decisions
+
+- Consumption lives on FriendshipRepository, not split across
+  BlueMoonTokenRepository and a service-layer transaction -- "consume
+  the token" and "create the friendship" must succeed or fail
+  together, and keeping that atomicity inside one repository method
+  avoided restructuring the service/repository dependency-injection
+  boundary (see the equivalent tradeoff noted in Milestone 0.8)
+- Both friendship participants must already be BlueMoon accounts --
+  resolves PRD Open Question #4 by the only interpretation the
+  current codebase supports (no PINChat/session-only account concept
+  exists yet), recorded in ADR-0026 rather than silently assumed
+- If already friends, a validly consumed token still gets marked
+  consumed (ON CONFLICT DO NOTHING on the friendship insert) rather
+  than treated as an error -- the token was legitimately redeemed
+
+Problems
+
+- Real bug: Hono's app.use(path, middleware) matches every HTTP
+  method on that path -- naive wiring would have rate-limited GET
+  /social/friendships (list) using the POST (consume) quota
+- Test-authoring bugs (not product bugs): a Response body read twice
+  in one test, and a test that accidentally used a consumer's own
+  username as the target, exercising the self-friendship rejection
+  path instead of the intended "unknown username" path -- same
+  category as Milestone 0.8's username-length mistake, caught
+  immediately by the first fake-container test run
+
+Problems Solved
+
+- Fixed with a small onlyForMethod middleware wrapper scoping the
+  rate limiter to POST only
+- Fixed by reading the already-parsed body instead of re-reading the
+  Response, and by registering a distinct third username for the
+  "unknown username" test case
+
+Next
+
+- Domain-layer unit tests (pure Username/Credential/session-lifetime/
+  lockout-policy/BlueMoon-Token-lifetime tests) -- still open
+- Automated dependency-rule enforcement (eslint-plugin-boundaries)
+- Still pending: real product docs, founder review of architecture
+  docs and the PRD
+- Milestone 1.0 (PINChat MVP) once Milestones 0.2 and 0.4 (founder
+  sign-off) are resolved -- not started as part of this milestone
+
+---
+
 ## 2026-07-25
 
 Milestone 0.6

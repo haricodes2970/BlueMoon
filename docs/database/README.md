@@ -7,6 +7,8 @@ and data retention policy.
   context's tables (Milestone 0.6): `users`, `devices`,
   `trusted_devices`, `sessions`, `refresh_tokens`, `login_attempts`,
   `audit_events`.
+- [Social-Schema.md](./Social-Schema.md) — the Social bounded
+  context's tables (Milestone 0.9): `blue_moon_tokens`, `friendships`.
 
 No other domain's schema exists yet. Database is decided (PostgreSQL
 via Drizzle, see [ADR-0005](../adr/ADR-0005-postgresql.md),
