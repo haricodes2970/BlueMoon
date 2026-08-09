@@ -213,7 +213,9 @@ export function createFakeIdentityContainer(accessTokenSecret: string): {
     },
     async revoke(id: string) {
       const token = refreshTokens.get(id);
-      if (token) token.revokedAt = new Date();
+      if (!token || token.revokedAt !== null) return null;
+      token.revokedAt = new Date();
+      return token;
     },
     async revokeBySession(sessionId: string) {
       for (const token of refreshTokens.values()) {

@@ -48,6 +48,17 @@ export interface RefreshSessionResult {
 export function createRefreshSessionUseCase(deps: RefreshSessionDependencies) {
   const now = deps.now ?? (() => new Date());
 
+  async function killSessionForReuse(sessionId: string, ipAddress: string) {
+    await deps.sessions.revoke(sessionId);
+    await deps.refreshTokens.revokeBySession(sessionId);
+    await deps.audit.record({
+      type: "session_revoked",
+      userId: null,
+      ipAddress,
+      metadata: { reason: "refresh_token_reuse", sessionId },
+    });
+  }
+
   return async function refreshSession(
     input: RefreshSessionInput,
   ): Promise<RefreshSessionResult> {
@@ -59,17 +70,7 @@ export function createRefreshSessionUseCase(deps: RefreshSessionDependencies) {
 
     if (!isRefreshTokenActive(existing, now())) {
       if (existing.revokedAt !== null) {
-        await deps.sessions.revoke(existing.sessionId);
-        await deps.refreshTokens.revokeBySession(existing.sessionId);
-        await deps.audit.record({
-          type: "session_revoked",
-          userId: null,
-          ipAddress: input.ipAddress,
-          metadata: {
-            reason: "refresh_token_reuse",
-            sessionId: existing.sessionId,
-          },
-        });
+        await killSessionForReuse(existing.sessionId, input.ipAddress);
         throw new RefreshTokenReuseError();
       }
       throw new SessionExpiredError();
@@ -86,7 +87,17 @@ export function createRefreshSessionUseCase(deps: RefreshSessionDependencies) {
       throw new SessionExpiredError();
     }
 
-    await deps.refreshTokens.revoke(existing.id);
+    const revoked = await deps.refreshTokens.revoke(existing.id);
+    if (!revoked) {
+      // Lost a concurrent rotation race: another request revoked this
+      // exact token between our findByHash and our revoke. Same signal
+      // as detected reuse (two presentations of one token), so respond
+      // identically -- kill the session rather than silently letting
+      // this request also mint a second valid child of the same parent.
+      await killSessionForReuse(session.id, input.ipAddress);
+      throw new RefreshTokenReuseError();
+    }
+
     const rawNewToken = generateRefreshToken();
     await deps.refreshTokens.create({
       sessionId: session.id,

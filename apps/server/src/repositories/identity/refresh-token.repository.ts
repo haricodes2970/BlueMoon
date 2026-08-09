@@ -1,6 +1,6 @@
 import { schema, type Database } from "@bluemoon/database";
 import { generateUuid } from "@bluemoon/utils";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { RefreshToken } from "../../domain/identity/entities/session.js";
 
 export interface CreateRefreshTokenInput {
@@ -13,7 +13,17 @@ export interface CreateRefreshTokenInput {
 export interface RefreshTokenRepository {
   findByHash(tokenHash: string): Promise<RefreshToken | null>;
   create(input: CreateRefreshTokenInput): Promise<RefreshToken>;
-  revoke(id: string): Promise<void>;
+  /**
+   * Atomic conditional revoke (`WHERE revoked_at IS NULL`) -- returns
+   * the revoked row if this call performed the revoke, or `null` if
+   * the token was already revoked (including by a concurrent caller
+   * that won the race). Milestone 0.8: closes a refresh-rotation
+   * TOCTOU gap where two concurrent requests presenting the same
+   * still-active token could both pass the active check and both
+   * rotate it, producing two valid children of one parent token. See
+   * docs/security/Session-Management.md#rotation.
+   */
+  revoke(id: string): Promise<RefreshToken | null>;
   revokeBySession(sessionId: string): Promise<void>;
   /** Revokes every refresh token across every session belonging to this user. */
   revokeAllForUser(userId: string): Promise<void>;
@@ -48,10 +58,17 @@ export function createRefreshTokenRepository(
     },
 
     async revoke(id) {
-      await db
+      const [row] = await db
         .update(schema.refreshTokens)
         .set({ revokedAt: new Date() })
-        .where(eq(schema.refreshTokens.id, id));
+        .where(
+          and(
+            eq(schema.refreshTokens.id, id),
+            isNull(schema.refreshTokens.revokedAt),
+          ),
+        )
+        .returning();
+      return row ?? null;
     },
 
     async revokeBySession(sessionId) {
