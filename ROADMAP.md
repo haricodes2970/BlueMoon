@@ -91,12 +91,15 @@ not blocking this milestone's completion.
 - [ ] Founder review and sign-off on all five architecture documents
 - [ ] Automated dependency-rule enforcement (ESLint boundaries rule) —
       deliberately deferred past this milestone, tracked for before
-      Milestone 1.0 implementation begins (see ADR-0019)
+      Milestone 1.1 (the real PINChat V1) implementation begins (see
+      ADR-0019). Milestone 1.0's interim messaging slice shipped
+      without it, same as every milestone before it — code-review
+      enforcement only, unchanged.
 
 **Completion criteria:** all five architecture documents and three new
 ADRs reviewed/accepted by the founder. Automated enforcement is not a
-blocker for closing 0.4 but must land before Milestone 1.0 writes real
-code across these boundaries.
+blocker for closing 0.4 but should land before Milestone 1.1 writes
+real PINChat feature code across these boundaries.
 
 ## Milestone 0.5 — Core Infrastructure
 
@@ -254,9 +257,63 @@ a friendship, token security properties (single-use, 300s expiry,
 atomic under concurrency) verified against a real database — met. See
 [Phase-0.9.md](./docs/phases/Phase-0.9.md) for the full writeup.
 
-## Milestone 1.0 — PINChat MVP
+## Milestone 1.0 — 1:1 Messaging Vertical Slice (Interim, Friendship-Gated)
 
-**Status: Blocked** (depends on 0.2 through 0.9)
+**Status: Complete**
+
+**This is not the canonical PINChat V1 MVP** described in
+`docs/product/` (see Milestone 1.1, below, which retains that scope
+unchanged). Built as an interim engineering milestone, explicitly
+scoped and founder-approved: two genuine, material conflicts between
+this milestone's task brief and the canonical product documentation
+(session/PIN-gating vs. friendship-gating; required E2EE vs. no
+existing encryption design) were found and reported before any
+implementation code was written, rather than resolved silently — see
+[ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
+and [ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md) for
+the founder's explicit decisions.
+
+- [x] `conversations`/`messages` schema, gated on an existing Social
+      Friendship (not a session/PIN) — canonical-pair storage,
+      idempotent concurrent creation, verified against a real
+      PostgreSQL instance
+- [x] Real-time message delivery over an authenticated, per-user
+      WebSocket (`/messaging/ws`); persist-then-broadcast, database is
+      the source of truth regardless of recipient connection state
+- [x] Basic online/offline presence (in-memory, read at request time)
+- [x] Message content stored in plaintext — no end-to-end encryption
+      (deliberate, disclosed gap, not silently dropped)
+- [x] Minimal Next.js frontend: login/register, friend list → start
+      conversation, conversation list, active conversation view
+      (history, composer, sending state, presence indicator)
+- [x] 10 fake-container HTTP tests + 9 fake-container WebSocket tests
+      (`pnpm test` 53/53, database-free)
+- [x] 13 real-Postgres repository tests + 5 HTTP tests + 2 WebSocket
+      tests (`pnpm test:db` 59/59)
+- [x] Full golden path verified live in a real browser against a real
+      server and a real PostgreSQL instance
+- [x] ADR-0027, ADR-0028 (WebSocket architecture), ADR-0029
+- [x] Full quality gate green
+
+**Completion criteria:** a working 1:1 messaging vertical slice
+(persistent conversations, real-time delivery, basic presence) between
+two existing BlueMoon accounts who are already Social friends — met.
+Explicitly does **not** meet the canonical PINChat V1 completion
+criteria (see Milestone 1.1) — that scope was deliberately deferred,
+not attempted. See [Phase-1.0.md](./docs/phases/Phase-1.0.md) for the
+full writeup.
+
+## Milestone 1.1 — PINChat V1 (Session/PIN, End-to-End Encryption)
+
+**Status: Blocked** (depends on 0.2, 0.4, and a not-yet-started
+session/PIN architecture design — see
+[ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
+Future Implications)
+
+Renumbered from "Milestone 1.0" — Milestone 1.0 now names the interim
+messaging slice actually shipped (see above), which does not meet this
+milestone's scope. This section's content is otherwise unchanged from
+before the renumbering.
 
 - [ ] Session/PIN issuance and join flow (Journey 1)
 - [ ] Group session lifecycle (Journey 2)
@@ -284,7 +341,8 @@ are implemented end-to-end and match the V1 scope in
 | 0.7 Identity HTTP/API Layer                         | Complete                                   | 100%     |
 | 0.8 Real PostgreSQL Integration & Repo Verification | Complete                                   | 100%     |
 | 0.9 Social / Friendship + BlueMoon Token            | Complete                                   | 100%     |
-| 1.0 PINChat MVP                                     | Blocked                                    | 0%       |
+| 1.0 Messaging Vertical Slice (Interim)              | Complete                                   | 100%     |
+| 1.1 PINChat V1 (Session/PIN, E2EE)                  | Blocked                                    | 0%       |
 
 ## Next Objective
 
@@ -292,10 +350,18 @@ Receiving the founder's actual approved product documents remains the
 single biggest blocker, unchanged since Milestone 0.2. In parallel: get
 founder sign-off on Milestone 0.4 architecture docs and the new PRD,
 and verify CI on an actual GitHub Actions run. Engineering-side,
-Milestones 0.5 through 0.9 are now closed — live-database verification,
-real-database repository tests, and the Social/BlueMoon Token layer are
-all done (see [Phase-0.8.md](./docs/phases/Phase-0.8.md) and
-[Phase-0.9.md](./docs/phases/Phase-0.9.md)). Remaining engineering gaps
-before Milestone 1.0: domain-layer unit tests (pure `Username`/
-`Credential`/session-lifetime/lockout-policy/BlueMoon-Token-lifetime
-tests), automated dependency-rule enforcement.
+Milestones 0.5 through 1.0 are now closed — live-database verification,
+real-database repository tests, the Social/BlueMoon Token layer, and an
+interim messaging vertical slice are all done (see
+[Phase-0.8.md](./docs/phases/Phase-0.8.md),
+[Phase-0.9.md](./docs/phases/Phase-0.9.md), and
+[Phase-1.0.md](./docs/phases/Phase-1.0.md)). Milestone 1.1 (the real
+PINChat V1) needs a dedicated session/PIN architecture design before
+implementation can start — see
+[ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
+Future Implications — plus a real end-to-end encryption design (see
+[ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md) Future
+Implications). Other remaining engineering gaps: domain-layer unit
+tests (pure `Username`/`Credential`/session-lifetime/lockout-policy/
+BlueMoon-Token-lifetime/`MessageContent` tests), automated
+dependency-rule enforcement, rate limiting on Messaging.

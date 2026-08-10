@@ -26,6 +26,121 @@ Next
 
 ---
 
+## 2026-08-10
+
+Milestone 1.0
+
+Completed
+
+- Phase 1 inspection found two genuine, material conflicts between
+  the task brief and canonical product docs before any implementation
+  code was written: friendship-gated messaging vs. ROADMAP.md's
+  session/PIN Milestone 1.0 checklist and Architecture-Overview.md's
+  "identity is additive, never a precondition" principle; required
+  E2EE vs. no encryption design existing anywhere in the codebase.
+  Reported per the Product Documentation Policy rather than resolved
+  silently; founder chose "friendship-gated now, session/PIN later"
+  and "defer E2EE, document the gap honestly" via explicit decisions
+- conversations, messages Drizzle schema + migration
+  (0002_far_elektra.sql), verified against a fresh PostgreSQL
+  instance: canonical-pair check constraint (same pattern as
+  friendships), both participant FKs cascade, sender_id is ON DELETE
+  SET NULL (attribution, not ownership -- messages.content is
+  plaintext, flagged inline pending ADR-0029)
+- Messaging domain/infrastructure/repository/application/HTTP layers
+  (apps/server/src/{domain,infrastructure,repositories,services,
+  routes,controllers}/messaging), following Identity's/Social's
+  conventions; PresenceRegistry + MessageBroadcaster in-memory,
+  single-process, same documented limitation as the rate limiter
+- @hono/node-server bumped 1.13.7 -> 2.1.0 for native
+  upgradeWebSocket (the installed 1.x version has no WebSocket
+  support at all -- confirmed by inspecting its type declarations
+  before deciding to bump); requireWsAuth middleware authenticates
+  via ?access_token= query parameter (browsers can't set custom
+  headers during a WS handshake)
+- messaging-container.ts composition root; app.ts mounts
+  /messaging/* HTTP routes and the /messaging/ws WebSocket route,
+  plus a new cors() middleware (WEB_ORIGIN env var) required for
+  apps/web to call the API cross-origin for the first time
+- Persist-then-broadcast message delivery: written to Postgres first,
+  broadcast to both participants' connections afterward, best-effort
+  and non-throwing -- a disconnected recipient never loses the
+  message, only the real-time push
+- Minimal Next.js frontend: Zustand auth store, typed API client, WS
+  hook with auto-reconnect, login/register pages, conversation
+  sidebar (friend list -> start conversation), active-conversation
+  view (history, composer, sending state, presence dot)
+- 10 fake-container HTTP tests + 9 fake-container WebSocket tests (a
+  new real-listening-TCP-server test harness, ws-test-server.ts,
+  since app.request() can't exercise a WS upgrade) -- pnpm test stays
+  database-free at 53/53 (34 Identity/Social + 19 Messaging)
+- 13 real-Postgres repository tests + 5 HTTP tests + 2 WebSocket
+  tests -- pnpm test:db at 59/59
+- Full golden path verified live in a real browser (next build + next
+  start) against a real server (tsc build + node dist/index.js) and a
+  real disposable PostgreSQL instance: two accounts registered,
+  befriended, started a conversation, and exchanged messages with
+  real-time bidirectional delivery and live presence, confirmed
+  without a page reload
+- ADR-0027 (friendship-gate deviation), ADR-0028 (WebSocket
+  architecture), ADR-0029 (E2EE deferral)
+- Full quality gate green: install, build, lint, type-check,
+  format:check, test (53/53), test:db (59/59)
+- Docs updated: Phase-1.0.md (new), Messaging-Schema.md (new),
+  Messaging.md (new), docs/api/README.md (populated from an empty
+  placeholder), CLAUDE.md, ROADMAP.md (Milestone 1.0 added as the
+  interim slice, the canonical PINChat MVP renumbered to 1.1), TODO.md,
+  CHANGELOG.md, DECISIONS.md, this entry, docs/database/README.md,
+  docs/security/README.md, PRD status note
+
+Decisions
+
+- Friendship-gated messaging is an explicit interim deviation from the
+  canonical session/PIN model, not a redesign of it -- ADR-0027
+  documents the deviation and leaves the real session/PIN model's
+  relationship to it as an open future question, not decided here
+- No E2EE implemented; plaintext storage and TLS-only transport
+  documented honestly as a known gap (ADR-0029) rather than faked with
+  partial/invented cryptography, per the task's own explicit
+  instruction not to do so
+- HTTP for reads and conversation creation, WebSocket exclusively for
+  sending -- no redundant HTTP send-message endpoint (ADR-0028)
+- Per-user WebSocket connections, not per-conversation -- avoids a
+  stateful subscribe/unsubscribe protocol; authorization computed
+  server-side from row data at broadcast time, same as HTTP
+- ConversationRepository.findOrCreateForUsers reuses the INSERT ...
+  ON CONFLICT DO NOTHING + fallback SELECT technique from Social's
+  token consumption, but for the opposite concurrency reason: every
+  concurrent caller should succeed with the identical row, not race
+  to be the sole winner
+
+Problems
+
+- Real bug, found during browser verification: zustand persist's
+  localStorage rehydration is asynchronous; the chat layout's original
+  auth guard redirected to /login on the pre-hydration null token,
+  briefly bouncing an already-logged-in user on every fresh page load.
+  Fixed with an explicit hasHydrated flag gating the redirect decision
+- Initially suspected bug, disproven on investigation: CORS preflight
+  OPTIONS requests appearing to exhaust Identity's registration rate
+  limit. Root cause was a stale, never-successfully-replaced server
+  process from earlier manual testing still bound to the port after
+  later restarts silently failed to bind -- not a real CORS/rate-limit
+  interaction (hono's cors() middleware short-circuits OPTIONS before
+  the rate limiter ever runs, confirmed empirically)
+
+Next
+
+- Design the real PINChat V1 session/PIN model (Milestone 1.1) and
+  its relationship to Milestone 1.0's interim friendship-gated
+  messaging
+- Design and implement real end-to-end encryption
+- Add rate limiting to Messaging
+- Expand domain-layer unit test coverage (Identity + Messaging)
+- Add automated dependency-rule enforcement
+
+---
+
 ## 2026-07-25
 
 Milestone 0.5

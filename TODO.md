@@ -16,22 +16,38 @@ and remove it on the next pass rather than letting completed items pile up.
 - [ ] Founder review and sign-off on all five Milestone 0.4 architecture
       documents (System/Package/Dependency-Rules/Backend/Frontend)
 
-## Next (before Milestone 1.0 implementation starts)
+## Next (before Milestone 1.1 — the real PINChat V1 — implementation starts)
 
+- [ ] Design the real PINChat V1 session/PIN model (no-account
+      conversation start) and how it relates to Milestone 1.0's
+      interim friendship-gated messaging — see
+      [ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
+      Future Implications
+- [ ] Design and implement real end-to-end encryption for message
+      content — see
+      [ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md)
+      Future Implications
 - [ ] Expand Vitest coverage to the domain layer directly (unit tests
       for Username/Credential/session-lifetime/lockout-policy/
-      BlueMoon-Token-lifetime — pure functions, no infra needed).
-      Repository-level and HTTP-level real-database coverage landed
-      in Milestones 0.8/0.9 (`pnpm test:db`, 39 tests) — see
-      [Phase-0.8.md](./docs/phases/Phase-0.8.md),
-      [Phase-0.9.md](./docs/phases/Phase-0.9.md)
+      BlueMoon-Token-lifetime/MessageContent — pure functions, no
+      infra needed). Repository-level and HTTP-level real-database
+      coverage landed in Milestones 0.8/0.9/1.0 (`pnpm test:db`, 59
+      tests) — see [Phase-0.8.md](./docs/phases/Phase-0.8.md),
+      [Phase-0.9.md](./docs/phases/Phase-0.9.md),
+      [Phase-1.0.md](./docs/phases/Phase-1.0.md)
+- [ ] Add rate limiting to Messaging (conversation creation, message
+      send) — see
+      [Messaging.md](./docs/security/Messaging.md#rate-limiting)
 - [ ] Add automated dependency-rule enforcement — `eslint-plugin-boundaries`
       or equivalent in `tooling/eslint-config`, configured against
       [Dependency-Rules.md](./docs/architecture/Dependency-Rules.md)
       (see ADR-0019 Future Implications)
-- [ ] Move the in-memory rate limiter to a shared store (e.g. Redis)
-      before horizontal scaling — see
-      [Authentication.md](./docs/security/Authentication.md#rate-limiting)
+- [ ] Move the in-memory rate limiter and Messaging's presence/broadcast
+      registries to a shared store (e.g. Redis) before horizontal
+      scaling — see
+      [Authentication.md](./docs/security/Authentication.md#rate-limiting),
+      [ADR-0028](./docs/adr/ADR-0028-messaging-websocket-architecture.md)
+      Future Implications
 - [ ] Implement email verification/recovery for Identity ("forgot
       credential" flow depends on this — see
       [Authentication.md](./docs/security/Authentication.md#credential-rules))
@@ -43,9 +59,10 @@ and remove it on the next pass rather than letting completed items pile up.
 ## Later
 
 - [ ] Validate the three hypothesis personas with real user research
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 and 0.4 (founder
-      document/architecture sign-off) are actually closed out — 0.5
-      through 0.9 are engineering-complete
+- [ ] Begin Milestone 1.1 (PINChat V1) once 0.2, 0.4 (founder
+      document/architecture sign-off), and the session/PIN + E2EE
+      design work above are done — 0.5 through 1.0 are
+      engineering-complete
 
 ## See Also
 

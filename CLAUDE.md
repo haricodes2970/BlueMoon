@@ -33,37 +33,53 @@ the conflict instead of silently changing the documents.
 
 ## Current Phase
 
-**Phase 0 — Engineering Foundation** (transitioning into Phase 1 —
-Identity is the first real product-adjacent implementation, though it
-is platform infrastructure, not PINChat feature work)
+**Phase 1 — Interim Messaging Vertical Slice** (Identity and Social
+are platform infrastructure; Milestone 1.0 is the first
+product-adjacent feature work, but explicitly not the canonical
+PINChat V1 — see below)
 
-Documentation, architecture, and infrastructure are being established
-before PINChat feature implementation begins. Real infrastructure code
-exists as of Milestone 0.5; Milestone 0.6 built the Identity bounded
-context's domain/application layers; Milestone 0.7 exposed it as a
-real, tested HTTP API; Milestone 0.8 verified all of it against a real
-PostgreSQL instance; Milestone 0.9 added the Social bounded context
-(BlueMoon Token + friendship) on top of it.
+Documentation, architecture, and infrastructure were established
+through Milestone 0.9. Milestone 1.0 built a 1:1 messaging vertical
+slice (conversations, messages, real-time delivery via WebSocket,
+presence, a minimal frontend) on top of Identity and Social —
+**deliberately gated on the existing account-to-account Friendship,
+not the canonical session/PIN model, and deliberately without
+end-to-end encryption.** Both are explicit, founder-approved
+deviations from the canonical product documentation, documented
+honestly rather than silently assumed — see
+[ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
+and [ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md).
+The real PINChat V1 (session/PIN issuance, no-account conversations,
+E2EE) remains entirely unimplemented and unscheduled.
 
 ## Current Milestone
 
-**Milestone 0.9 — Social / Friendship + BlueMoon Token** (complete)
+**Milestone 1.0 — 1:1 Messaging Vertical Slice (Interim, Friendship-Gated)** (complete)
 
-The BlueMoon Token is now the only mechanism that creates a friendship
-between two BlueMoon accounts — a username alone is never sufficient.
-Generation is owner-only (`ownerId` always from the session, never a
-request field); consumption is single-use, expires after 300 seconds,
-and is enforced by one atomic conditional `UPDATE` (not check-then-
-update) inside a transaction that also creates the friendship —
-verified against real PostgreSQL with two concurrent consumption
-requests for the same token resolving to exactly one success. Reuses
-Identity's `UserRepository` and `requireAuth` middleware unmodified;
-deliberately does not reuse Identity's auth-token infrastructure for
-the BlueMoon Token itself (see
-[ADR-0026](./docs/adr/ADR-0026-blue-moon-token.md)). `pnpm test`
-stays database-free at 34/34 (16 Identity + 18 Social); `pnpm test:db`
-at 39/39. See [Phase-0.9.md](./docs/phases/Phase-0.9.md) and
-[Social.md](./docs/security/Social.md).
+Persistent 1:1 conversations and text messages
+(`conversations`/`messages`, canonical-pair storage matching
+Social's `friendships`), real-time delivery over an authenticated
+per-user WebSocket (`/messaging/ws`, query-string access-token auth —
+browsers can't set custom headers during a WS handshake), and basic
+online/offline presence (in-memory, read at request time). A message
+is persisted to PostgreSQL before it is broadcast — a disconnected
+recipient never loses a message, only the real-time push. Conversation
+creation requires an existing Social Friendship; there is no username-
+or session-based path (see
+[ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)).
+Message content is stored in **plaintext, not end-to-end encrypted** —
+a deliberate, disclosed gap against the canonical V1 requirement (see
+[ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md)), not a
+silently dropped one. A minimal Next.js frontend (login/register,
+friend list → start conversation, conversation view with history,
+composer, sending state, presence indicator) was built and the full
+golden path verified live in a real browser against a real server and
+a real PostgreSQL instance. `pnpm test` stays database-free at 53/53
+(34 Identity/Social + 10 Messaging HTTP + 9 Messaging WebSocket);
+`pnpm test:db` at 59/59. See [Phase-1.0.md](./docs/phases/Phase-1.0.md),
+[Messaging.md](./docs/security/Messaging.md), and
+[ADR-0028](./docs/adr/ADR-0028-messaging-websocket-architecture.md)
+(WebSocket transport design).
 
 ## Active Tasks
 
@@ -79,16 +95,24 @@ at 39/39. See [Phase-0.9.md](./docs/phases/Phase-0.9.md) and
       or equivalent) — currently code-review-only, see ADR-0019
 - [ ] Expand the Vitest suite to the domain layer directly (unit tests
       for Username/Credential/session-lifetime/lockout-policy/
-      BlueMoon-Token-lifetime in isolation) — repository-level and
-      HTTP-level real-database coverage landed in Milestones 0.8/0.9;
-      pure domain-function unit tests are still open
+      BlueMoon-Token-lifetime/MessageContent in isolation) —
+      repository-level and HTTP-level real-database coverage landed in
+      Milestones 0.8/0.9/1.0; pure domain-function unit tests are
+      still open
 - [ ] Validate the three hypothesis personas with real user research
 - [ ] Choose final license and update `LICENSE`
 - [ ] Move the in-memory rate limiter to a shared store (e.g. Redis)
       before horizontal scaling — see ADR/TODO
-- [ ] Begin Milestone 1.0 (PINChat MVP) once 0.2 and 0.4 (founder
-      document/architecture sign-off) are resolved — 0.5 through 0.9
-      are engineering-complete
+- [ ] Design and implement the real PINChat V1 session/PIN model
+      (no-account conversation start, ephemeral sessions) — the
+      canonical product requirement Milestone 1.0 deliberately did not
+      build; see [ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
+- [ ] Design and implement real end-to-end encryption for message
+      content — currently plaintext at rest, TLS-only in transit; see
+      [ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md)
+- [ ] Add rate limiting to Messaging (conversation creation, message
+      send) — currently unbounded beyond client behavior, see
+      [Messaging.md](./docs/security/Messaging.md#rate-limiting)
 
 ## Completed Tasks
 
@@ -275,6 +299,48 @@ change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
       this file, `ROADMAP.md`, `TODO.md`, `CHANGELOG.md`, Engineering
       Journal, PRD status note
 
+**Milestone 1.0 — 1:1 Messaging Vertical Slice (Interim, Friendship-Gated)**
+
+- [x] Found and reported two genuine, material conflicts between the
+      task brief and canonical product docs (friendship-gating vs.
+      session/PIN; E2EE required vs. no design existing) before
+      writing implementation code; founder chose interim
+      friendship-gated messaging + deferred E2EE, both explicitly
+      documented as deviations (ADR-0027, ADR-0029), not silently
+      decided
+- [x] `conversations`, `messages` Drizzle schema + migration, verified
+      against a fresh PostgreSQL instance
+- [x] Domain/application/infrastructure/repository/HTTP/WebSocket
+      layers for the Messaging bounded context, following Identity's
+      and Social's conventions
+- [x] `@hono/node-server` bumped to `2.1.0` for native
+      `upgradeWebSocket`; authenticated per-user WebSocket
+      (`/messaging/ws`, query-string access token)
+- [x] Persist-then-broadcast message delivery; in-memory
+      `PresenceRegistry`/`MessageBroadcaster` (single-process, same
+      documented limitation as the rate limiter)
+- [x] `hono/cors` + `WEB_ORIGIN` env var — required for `apps/web` to
+      call the API cross-origin (nothing had called it from a browser
+      before this milestone)
+- [x] Minimal Next.js frontend: auth store, API client, WS hook,
+      login/register, conversation sidebar, active-conversation view
+      (history, composer, sending state, presence)
+- [x] 10 fake-container HTTP tests + 9 fake-container WebSocket tests
+      (new real-TCP-server test harness) — `pnpm test` 53/53,
+      database-free
+- [x] 13 real-Postgres repository tests + 5 HTTP tests + 2 WebSocket
+      tests — `pnpm test:db` 59/59
+- [x] Full golden path verified live in a real browser against a real
+      server and a real PostgreSQL instance; found and fixed a real
+      Zustand persist-hydration race in the frontend auth guard during
+      that verification
+- [x] ADR-0027 (friendship-gate deviation), ADR-0028 (WebSocket
+      architecture), ADR-0029 (E2EE deferral)
+- [x] Full quality gate green
+- [x] Docs updated: `Phase-1.0.md`, `Messaging-Schema.md`,
+      `Messaging.md`, `docs/api/README.md`, this file, `ROADMAP.md`,
+      `TODO.md`, `CHANGELOG.md`, Engineering Journal, PRD status note
+
 ## Engineering Principles
 
 - Optimize for maintainability, scalability, readability, security, and
@@ -314,26 +380,27 @@ Root navigation files (quick orientation for humans and AI agents):
 [DECISIONS.md](./DECISIONS.md), [TODO.md](./TODO.md). These are thin
 indexes — full content stays in `/docs`.
 
-| Area                                                               | Path                                                                                                                                                   |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Product (source of truth)                                          | [`docs/product`](./docs/product)                                                                                                                       |
-| Product Requirements Document (canonical implementation spec)      | [`docs/product/Product-Requirements-Document.md`](./docs/product/Product-Requirements-Document.md)                                                     |
-| Architecture overview & tech stack                                 | [`docs/architecture`](./docs/architecture)                                                                                                             |
-| ADR log (26 records as of Milestone 0.9)                           | [`docs/adr`](./docs/adr)                                                                                                                               |
-| System / Package / Dependency / Backend / Frontend architecture    | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)                                          |
-| Security (Identity auth/session management, Social/BlueMoon Token) | [`docs/security`](./docs/security)                                                                                                                     |
-| Database (Identity + Social schema)                                | [`docs/database`](./docs/database)                                                                                                                     |
-| Engineering standards                                              | [`docs/engineering`](./docs/engineering)                                                                                                               |
-| Engineering journal (chronological milestone log)                  | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md)                                                                 |
-| Per-milestone phase documents                                      | [`docs/phases`](./docs/phases)                                                                                                                         |
-| Environment variable strategy                                      | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md)                                                               |
-| Frontend / API / Deployment                                        | `docs/{frontend,api,deployment}` — index stubs only, populated as each area is implemented                                                             |
-| Meeting notes                                                      | [`docs/meeting-notes`](./docs/meeting-notes)                                                                                                           |
-| Workspace apps                                                     | [`apps/`](./apps) — `web` (Next.js shell), `server` (Hono; full Identity and Social domain/application/HTTP layers, `/auth/*` and `/social/*`)         |
-| Workspace packages                                                 | [`packages/`](./packages) — `types`, `utils`, `config`, `database` implemented; `auth` placeholder exports only; `ui` empty placeholder (out of scope) |
-| Shared tooling                                                     | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config`                                                                      |
-| Roadmap                                                            | [`ROADMAP.md`](./ROADMAP.md)                                                                                                                           |
-| Changelog                                                          | [`CHANGELOG.md`](./CHANGELOG.md)                                                                                                                       |
+| Area                                                               | Path                                                                                                                                                                                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product (source of truth)                                          | [`docs/product`](./docs/product)                                                                                                                                                                                 |
+| Product Requirements Document (canonical implementation spec)      | [`docs/product/Product-Requirements-Document.md`](./docs/product/Product-Requirements-Document.md)                                                                                                               |
+| Architecture overview & tech stack                                 | [`docs/architecture`](./docs/architecture)                                                                                                                                                                       |
+| ADR log (29 records as of Milestone 1.0)                           | [`docs/adr`](./docs/adr)                                                                                                                                                                                         |
+| System / Package / Dependency / Backend / Frontend architecture    | [`docs/architecture/{System,Package,Dependency-Rules,Backend,Frontend}-Architecture.md`](./docs/architecture)                                                                                                    |
+| Security (Identity auth/session, Social/BlueMoon Token, Messaging) | [`docs/security`](./docs/security)                                                                                                                                                                               |
+| Database (Identity + Social + Messaging schema)                    | [`docs/database`](./docs/database)                                                                                                                                                                               |
+| Engineering standards                                              | [`docs/engineering`](./docs/engineering)                                                                                                                                                                         |
+| Engineering journal (chronological milestone log)                  | [`docs/engineering/Engineering-Journal.md`](./docs/engineering/Engineering-Journal.md)                                                                                                                           |
+| Per-milestone phase documents                                      | [`docs/phases`](./docs/phases)                                                                                                                                                                                   |
+| Environment variable strategy                                      | [`docs/engineering/environment-strategy.md`](./docs/engineering/environment-strategy.md)                                                                                                                         |
+| API reference (HTTP endpoints + WebSocket event contract)          | [`docs/api`](./docs/api)                                                                                                                                                                                         |
+| Frontend / Deployment                                              | `docs/{frontend,deployment}` — index stubs only, populated as each area is implemented                                                                                                                           |
+| Meeting notes                                                      | [`docs/meeting-notes`](./docs/meeting-notes)                                                                                                                                                                     |
+| Workspace apps                                                     | [`apps/`](./apps) — `web` (Next.js; login/register, chat UI), `server` (Hono; Identity, Social, and Messaging domain/application/HTTP/WebSocket layers, `/auth/*`, `/social/*`, `/messaging/*`, `/messaging/ws`) |
+| Workspace packages                                                 | [`packages/`](./packages) — `types`, `utils`, `config`, `database` implemented; `auth` placeholder exports only; `ui` empty placeholder (out of scope)                                                           |
+| Shared tooling                                                     | [`tooling/`](./tooling) — `typescript-config`, `eslint-config`, `prettier-config`                                                                                                                                |
+| Roadmap                                                            | [`ROADMAP.md`](./ROADMAP.md)                                                                                                                                                                                     |
+| Changelog                                                          | [`CHANGELOG.md`](./CHANGELOG.md)                                                                                                                                                                                 |
 
 ## Repository Conventions
 
@@ -357,11 +424,13 @@ indexes — full content stays in `/docs`.
 
 See [`docs/adr`](./docs/adr) for the authoritative log, and
 [`DECISIONS.md`](./DECISIONS.md) for the root-level index. As of this
-writing: ADR-0001 through ADR-0025, covering repository structure, the
+writing: ADR-0001 through ADR-0029, covering repository structure, the
 full technology stack, build tooling, core architecture, infrastructure
-(logging, configuration, error handling), and the Identity domain
-(model, session strategy, credential authentication — the last with an
-open, unresolved naming conflict, see Known Limitations).
+(logging, configuration, error handling), the Identity domain (model,
+session strategy, credential authentication), the BlueMoon Token/
+Friendship model, and Milestone 1.0's Messaging layer (friendship-gate
+deviation, WebSocket architecture, deferred E2EE — see Known
+Limitations for what each of the last two means in practice).
 
 ## Known Limitations
 
@@ -424,6 +493,27 @@ open, unresolved naming conflict, see Known Limitations).
   `findActiveByUserAndDevice` before revoking, rather than modifying
   the repository (Milestone 0.7 was scoped to treat repositories as
   stable).
+- **Milestone 1.0 messaging is friendship-gated, not the canonical
+  session/PIN model** — a deliberate, founder-approved interim
+  deviation, not an oversight. See
+  [ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md).
+  The real PINChat V1 (start a conversation with no pre-existing
+  account) remains entirely unimplemented.
+- **Message content is stored in plaintext — not end-to-end
+  encrypted.** Transport security is TLS only; BlueMoon's own
+  infrastructure can read every message. A material, disclosed gap
+  against the canonical V1 requirement, not a silent omission. See
+  [ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md).
+- Messaging's `PresenceRegistry`/`MessageBroadcaster`
+  (`infrastructure/messaging/`) are in-memory and single-process,
+  same documented limitation as the Identity rate limiter — must move
+  to a shared store before horizontal scaling.
+- No rate limiting on Messaging (conversation creation, message send)
+  — see [Messaging.md](./docs/security/Messaging.md#rate-limiting).
+- Messaging's domain layer (`MessageContent`, `canonicalizePair`,
+  etc.) has no direct unit tests — covered indirectly through
+  HTTP/repository/WebSocket tests, same pre-existing gap as Identity's
+  domain layer since Milestone 0.7.
 
 ## Pending Discussions
 
@@ -434,11 +524,20 @@ open, unresolved naming conflict, see Known Limitations).
   PostgreSQL (flagged in ADR-0005's Future Implications, not yet
   decided).
 - Verifying a real GitHub Actions CI run passes (only run locally so far).
-- Verifying `apps/server` against a live PostgreSQL instance.
-- Adding automated dependency-boundary enforcement before Milestone 1.0
-  implementation begins (see ADR-0019 Future Implications).
-- Expanding Identity test coverage to the domain layer directly and to
-  live-database repository tests.
+- Adding automated dependency-boundary enforcement (see ADR-0019
+  Future Implications).
+- Expanding Identity's and Messaging's test coverage to the domain
+  layer directly.
+- **Designing the real PINChat V1 session/PIN model** and how it
+  should relate to the interim Friendship-gated messaging Milestone
+  1.0 shipped — does it replace friendship-gating, layer alongside it,
+  or coexist as two independent ways to start a conversation? Not
+  decided — see [ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
+  Future Implications.
+- **Designing real end-to-end encryption** for message content — key
+  exchange, key storage, multi-device key distribution. Not decided —
+  see [ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md)
+  Future Implications.
 
 ## Future Roadmap
 

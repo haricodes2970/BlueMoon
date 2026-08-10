@@ -9,6 +9,9 @@ design, data protection, and audit notes.
   token strategy, rotation, reuse detection, revocation, device trust
 - [Social.md](./Social.md) — BlueMoon Token generation/expiry/single-use,
   atomic concurrent-consumption protection, friendship authorization
+- [Messaging.md](./Messaging.md) — conversation/message authorization,
+  WebSocket authentication and delivery model, presence, and the
+  current plaintext-storage/no-E2EE status
 
 See root [`SECURITY.md`](../../SECURITY.md) for the vulnerability
 reporting policy.

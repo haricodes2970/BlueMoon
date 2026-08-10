@@ -154,6 +154,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   separate from authentication infrastructure.
 - `docs/database/Social-Schema.md`, `docs/security/Social.md`,
   `docs/phases/Phase-0.9.md`.
+- `conversations`, `messages` Drizzle schema + migration
+  (`0002_far_elektra.sql`), verified against a fresh PostgreSQL
+  instance.
+- Messaging domain/application/infrastructure/repository/HTTP/
+  WebSocket layers (`apps/server/src/{domain,services,infrastructure,
+repositories,routes,controllers,validation,websocket}/messaging`),
+  following Identity's and Social's conventions.
+- In-memory `PresenceRegistry` and `MessageBroadcaster`
+  (`infrastructure/messaging/`) — single-process, same documented
+  limitation as the existing rate limiter.
+- 3 new Messaging HTTP endpoints: `POST /messaging/conversations`,
+  `GET /messaging/conversations`,
+  `GET /messaging/conversations/{id}/messages` — OpenAPI-documented,
+  authenticated (reuses Identity's `requireAuth`), friendship-gated
+  conversation creation.
+- Authenticated per-user WebSocket connection at `GET /messaging/ws`
+  (query-string access-token auth via a new `requireWsAuth`
+  middleware); `send_message`/`message`/`error` event contract — see
+  `docs/api/README.md`.
+- `hono/cors` middleware + `WEB_ORIGIN` env var — the first time
+  `apps/server` accepts cross-origin requests, required for `apps/web`
+  to call the API.
+- 10 fake-container Messaging HTTP tests
+  (`apps/server/src/routes/messaging/conversations.routes.test.ts`)
+  and 9 fake-container Messaging WebSocket tests
+  (`apps/server/src/websocket/messaging/connection.test.ts`), the
+  latter using a new real-listening-TCP-server test harness
+  (`test-utils/ws-test-server.ts`) since `app.request()` can't
+  exercise a WS upgrade.
+- 13 real-PostgreSQL Messaging repository tests, 5 real-PostgreSQL
+  Messaging HTTP tests, and 2 real-PostgreSQL Messaging WebSocket
+  tests, including a concurrent-`findOrCreateForUsers` test proving
+  every concurrent caller resolves to the same conversation.
+- ADR-0027 (interim friendship-gated messaging deviation), ADR-0028
+  (WebSocket transport/presence/delivery architecture), ADR-0029
+  (end-to-end encryption deferred).
+- `docs/database/Messaging-Schema.md`, `docs/security/Messaging.md`,
+  `docs/phases/Phase-1.0.md`; `docs/api/README.md` populated from an
+  empty placeholder.
+- Minimal PINChat frontend (`apps/web/src/`): Zustand `useAuthStore`
+  (localStorage-persisted, with an explicit hydration flag), typed API
+  client, auto-reconnecting WebSocket hook, `/login`/`/register` pages,
+  conversation sidebar (friend list → start conversation), active
+  conversation view (message history, composer, sending state,
+  presence indicator). One additional hand-added shadcn/ui primitive
+  (`Input`), same convention as the existing `Button`.
 
 ### Changed
 
@@ -226,6 +272,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Open Question #4 resolved (both participants must be existing
   BlueMoon accounts) — status/roadmap notes only, requirements
   unchanged.
+- `@hono/node-server` bumped `^1.13.7` → `^2.1.0` for its native
+  `upgradeWebSocket` export (the installed 1.x range has no WebSocket
+  support at all); `ws` and `@types/ws` added.
+- `apps/server/src/app.ts` mounts `/messaging/*` HTTP routes and the
+  `/messaging/ws` WebSocket route, extends `CreateAppOptions` with
+  `messagingContainer`; `apps/server/src/index.ts` constructs a
+  `WebSocketServer({noServer:true})` and passes it to
+  `serve({websocket})`.
+- `apps/server/src/test-utils/real-db.ts`'s `resetAllTables` now also
+  truncates `conversations`/`messages`.
+- `apps/server/src/test-utils/fake-social-container.ts` additively
+  exposes its internal `FriendshipRepository` so the Messaging fake
+  container can share the same friendship data in cross-context HTTP
+  tests.
+- `ROADMAP.md`: Milestone 1.0 added as the interim, friendship-gated
+  messaging vertical slice (Complete); the canonical PINChat MVP
+  renumbered to Milestone 1.1 (unchanged scope, still Blocked).
+  Progress Summary and Next Objective updated. `CLAUDE.md`, `TODO.md`,
+  `DECISIONS.md` (ADR-0027–0029 indexed), and the Engineering Journal
+  updated for Milestone 1.0. `docs/database/README.md` and
+  `docs/security/README.md` link the new Messaging docs.
+- `docs/product/Product-Requirements-Document.md`: status note
+  disclosing Milestone 1.0's two deliberate deviations (friendship-
+  gated messaging instead of session/PIN; no end-to-end encryption) —
+  status note only, canonical requirements unchanged.
 
 ### Fixed
 
@@ -278,3 +349,11 @@ test:db`, which bypasses Turbo and had masked the gap.
   across an authenticated read and a guessing-relevant write. Fixed
   with a small `onlyForMethod` middleware wrapper scoping the limiter
   to `POST` only.
+- `apps/web`'s `useAuthStore` (zustand `persist`) rehydrates from
+  `localStorage` asynchronously; the chat layout's auth guard checked
+  `accessToken` on mount and redirected to `/login` before hydration
+  completed, briefly bouncing an already-logged-in user to the login
+  page on every fresh page load. Fixed with an explicit `hasHydrated`
+  flag (set via `persist`'s `onRehydrateStorage`) gating the redirect
+  decision. Found and fixed during Milestone 1.0's live browser
+  verification.

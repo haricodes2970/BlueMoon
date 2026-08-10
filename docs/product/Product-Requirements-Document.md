@@ -144,6 +144,24 @@ Owned by PINChat's product documents, unchanged:
 platform Identity (e.g. whether a PINChat session can be tied to a
 BlueMoon account) is an open question — see Open Questions.
 
+**Status: an interim, non-canonical 1:1 messaging implementation
+exists — Milestone 1.0.** This is explicitly **not** an implementation
+of the canonical PINChat messaging journeys described above. It is
+account-to-account, gated on an existing BlueMoon Token / Friendship
+(not a session/PIN, and not journey-compatible as specified), and
+stores message content in plaintext (no end-to-end encryption, which
+the Product Blueprint lists as required V1 scope). Both deviations
+were found and reported as genuine conflicts with this document before
+implementation began, and were resolved by explicit founder decision
+rather than silently — see
+[ADR-0027](../adr/ADR-0027-messaging-friendship-gate-deviation.md)
+(friendship-gating) and
+[ADR-0029](../adr/ADR-0029-message-encryption-deferred.md) (E2EE
+deferral), and [Phase-1.0.md](../phases/Phase-1.0.md) for the full
+implementation record. The canonical session/PIN, E2EE messaging
+journeys described in the Product Blueprint and User Journey
+specification remain entirely unimplemented.
+
 ### Privacy Model
 
 See [Product Vision & Philosophy](./product-vision-and-philosophy.md#2-privacy-by-default-not-as-an-upsell)
@@ -187,7 +205,10 @@ Product-level future capabilities, in rough dependency order:
 1. Resolve the credential/PIN naming conflict (blocking).
 2. Identity HTTP/API layer, test suite, live-database verification
    (completes Milestone 0.6).
-3. PINChat MVP (Milestone 1.0) — per existing product docs.
+3. ~~PINChat MVP (Milestone 1.0)~~ — an interim, non-canonical
+   friendship-gated messaging slice was implemented instead (Milestone
+   1.0, see "Messaging" above); the canonical PINChat V1 (Milestone
+   1.1 in `ROADMAP.md`) remains per existing product docs, unscheduled.
 4. Email verification/recovery for Identity.
 5. ~~BlueMoon Token / friendship system~~ — implemented, Milestone 0.9
    (see above).
@@ -253,21 +274,35 @@ rate of "remember this device" adoption.
    BlueMoon accounts, or can it target a PINChat-only (no-account)
    session?~~ — resolved for Milestone 0.9: both participants must be
    existing BlueMoon accounts. No PINChat/session-only account concept
-   exists in this codebase yet (Milestone 1.0 unimplemented), so this
-   was the only interpretation the current architecture supports — see
-   [ADR-0026](../adr/ADR-0026-blue-moon-token.md). Revisit if/when
-   Milestone 1.0 introduces a no-account session concept.
+   existed in this codebase at the time, so this was the only
+   interpretation the architecture supported then — see
+   [ADR-0026](../adr/ADR-0026-blue-moon-token.md). Milestone 1.0
+   confirmed the same constraint for conversation creation (see
+   question 6, below); still revisit if/when Milestone 1.1 introduces
+   a no-account session concept.
 5. What second factor (if any) does "trusted device" eventually skip?
    Currently `deviceTrusted` is reported by the login use case but
    changes no behavior.
+6. **New, from Milestone 1.0:** does the real PINChat V1 session/PIN
+   model (Milestone 1.1) replace friendship-gated conversation
+   creation entirely, layer alongside it, or should both coexist as
+   independent ways to start a conversation (BlueMoon-account friends,
+   and anonymous session participants)? Not specified anywhere — see
+   [ADR-0027](../adr/ADR-0027-messaging-friendship-gate-deviation.md)
+   Future Implications. Related: what real end-to-end encryption
+   design should Milestone 1.1 use, given Milestone 1.0 shipped
+   without one — see
+   [ADR-0029](../adr/ADR-0029-message-encryption-deferred.md) Future
+   Implications.
 
 ## Version History
 
-| Version    | Date       | Change                                                                                                      |
-| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| Draft v1   | 2026-07-27 | Initial PRD, synthesizing existing product docs with Milestone 0.6 Identity work. Not yet founder-reviewed. |
-| Draft v1.1 | 2026-07-27 | Milestone 0.7: Identity HTTP API documented; credential/PIN naming conflict resolved (ADR-0025).            |
-| Draft v1.2 | 2026-08-09 | Milestone 0.9: BlueMoon Token marked implemented; Open Question #4 resolved (ADR-0026).                     |
+| Version    | Date       | Change                                                                                                                                                                                                                                                                 |
+| ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Draft v1   | 2026-07-27 | Initial PRD, synthesizing existing product docs with Milestone 0.6 Identity work. Not yet founder-reviewed.                                                                                                                                                            |
+| Draft v1.1 | 2026-07-27 | Milestone 0.7: Identity HTTP API documented; credential/PIN naming conflict resolved (ADR-0025).                                                                                                                                                                       |
+| Draft v1.2 | 2026-08-09 | Milestone 0.9: BlueMoon Token marked implemented; Open Question #4 resolved (ADR-0026).                                                                                                                                                                                |
+| Draft v1.3 | 2026-08-10 | Milestone 1.0: interim, non-canonical friendship-gated messaging disclosed (ADR-0027); no-E2EE gap disclosed (ADR-0029); Open Question #6 added; canonical PINChat V1 renumbered to Milestone 1.1 in ROADMAP.md — status notes only, canonical requirements unchanged. |
 
 ## Architecture Decisions Referenced
 
@@ -290,3 +325,5 @@ authentication, resolved).
 - [Identity-Schema.md](../database/Identity-Schema.md)
 - [Social.md](../security/Social.md)
 - [Social-Schema.md](../database/Social-Schema.md)
+- [Messaging.md](../security/Messaging.md)
+- [Messaging-Schema.md](../database/Messaging-Schema.md)
