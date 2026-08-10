@@ -46,6 +46,8 @@ export async function resetAllTables(db: Database): Promise<void> {
       trusted_devices,
       devices,
       blue_moon_tokens,
+      messages,
+      conversations,
       friendships,
       users
     RESTART IDENTITY CASCADE`,
