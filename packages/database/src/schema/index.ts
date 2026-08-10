@@ -7,3 +7,5 @@ export * from "./login-attempts.js";
 export * from "./audit-events.js";
 export * from "./blue-moon-tokens.js";
 export * from "./friendships.js";
+export * from "./conversations.js";
+export * from "./messages.js";
