@@ -23,6 +23,11 @@ import { createRemoveFriendshipUseCase } from "../services/social/remove-friends
 export function createFakeSocialContainer(users: UserRepository): {
   container: SocialContainer;
   auditEvents: SocialAuditEvent[];
+  /** Exposed so the Messaging fake container can share the same
+   * friendship data in HTTP tests that span both bounded contexts --
+   * mirrors how messaging-container.ts reuses FriendshipRepository
+   * read-only against the real database. */
+  friendships: FriendshipRepository;
 } {
   const tokens = new Map<string, BlueMoonToken>();
   const friendships = new Map<string, Friendship>();
@@ -124,5 +129,5 @@ export function createFakeSocialContainer(users: UserRepository): {
     }),
   };
 
-  return { container, auditEvents };
+  return { container, auditEvents, friendships: friendshipsRepo };
 }

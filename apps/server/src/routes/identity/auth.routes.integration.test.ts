@@ -28,6 +28,7 @@ describe.skipIf(!hasTestDatabase())("Identity HTTP API (real Postgres)", () => {
       PORT: 8787,
       LOG_LEVEL: "silent",
       JWT_ACCESS_TOKEN_SECRET: TEST_SECRET,
+      WEB_ORIGIN: "http://localhost:3000",
     };
     const app = createApp(env, { identityContainer: container });
     return { app };
