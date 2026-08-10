@@ -9,6 +9,8 @@ export const serverEnvSchema = extendEnvSchema({
     .default("info"),
   /** Signs Identity access tokens (JWT, HS256) -- see ADR-0024. */
   JWT_ACCESS_TOKEN_SECRET: z.string().min(32),
+  /** Origin allowed to call this API cross-origin -- apps/web runs on a different port/host. */
+  WEB_ORIGIN: z.string().url().default("http://localhost:3000"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

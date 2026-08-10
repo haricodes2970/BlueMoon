@@ -1,11 +1,14 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
+import { cors } from "hono/cors";
+import { upgradeWebSocket } from "@hono/node-server";
 import { createDatabase } from "@bluemoon/database";
 import { requestContext } from "./middleware/request-context.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { registerHealthRoute } from "./routes/health.js";
 import { registerAuthRoutes } from "./routes/identity/index.js";
 import { registerSocialRoutes } from "./routes/social/index.js";
+import { registerMessagingRoutes } from "./routes/messaging/index.js";
 import {
   createIdentityContainer,
   type IdentityContainer,
@@ -14,6 +17,12 @@ import {
   createSocialContainer,
   type SocialContainer,
 } from "./social-container.js";
+import {
+  createMessagingContainer,
+  type MessagingContainer,
+} from "./messaging-container.js";
+import { requireWsAuth } from "./middleware/identity/require-ws-auth.js";
+import { createMessagingConnectionHandlers } from "./websocket/messaging/connection.js";
 import { createServerLogger } from "./logger.js";
 import { appVersion } from "./version.js";
 import type { ServerEnv } from "./env.js";
@@ -22,6 +31,7 @@ export interface CreateAppOptions {
   /** Overrides the containers built from DATABASE_URL -- used by tests to inject fakes. */
   identityContainer?: IdentityContainer;
   socialContainer?: SocialContainer;
+  messagingContainer?: MessagingContainer;
 }
 
 export function createApp(
@@ -32,6 +42,9 @@ export function createApp(
   const app = new OpenAPIHono();
 
   app.use("*", requestContext(logger));
+  // apps/web runs on a different origin (port 3000 in dev); browsers
+  // enforce CORS on every fetch() call this API receives from it.
+  app.use("*", cors({ origin: env.WEB_ORIGIN }));
   app.onError(errorHandler);
 
   registerHealthRoute(app, env);
@@ -50,6 +63,9 @@ export function createApp(
 
   const socialContainer =
     options.socialContainer ?? (db ? createSocialContainer(db) : null);
+
+  const messagingContainer =
+    options.messagingContainer ?? (db ? createMessagingContainer(db) : null);
 
   if (identityContainer) {
     registerAuthRoutes(app, {
@@ -70,6 +86,30 @@ export function createApp(
   } else if (!socialContainer) {
     logger.warn(
       "DATABASE_URL not set -- Social routes (/social/*) are not mounted",
+    );
+  }
+
+  if (messagingContainer && identityContainer) {
+    registerMessagingRoutes(app, {
+      container: messagingContainer,
+      accessTokens: identityContainer.accessTokens,
+    });
+
+    // Authenticated WebSocket transport for real-time message
+    // delivery -- see websocket/messaging/connection.ts. Query-string
+    // auth (requireWsAuth), not the Authorization header: browsers
+    // cannot set custom headers during a native WS handshake. This
+    // only registers the Hono-side upgrade handler; actually wiring
+    // the underlying node HTTP server's 'upgrade' event happens in
+    // index.ts's serve({websocket: {server: wss}}) call.
+    app.get(
+      "/messaging/ws",
+      requireWsAuth(identityContainer.accessTokens),
+      upgradeWebSocket(createMessagingConnectionHandlers(messagingContainer)),
+    );
+  } else if (!messagingContainer) {
+    logger.warn(
+      "DATABASE_URL not set -- Messaging routes (/messaging/*) are not mounted",
     );
   }
 
