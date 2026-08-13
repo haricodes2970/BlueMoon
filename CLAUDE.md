@@ -59,8 +59,12 @@ E2EE) remains entirely unimplemented and unscheduled.
 Persistent 1:1 conversations and text messages
 (`conversations`/`messages`, canonical-pair storage matching
 Social's `friendships`), real-time delivery over an authenticated
-per-user WebSocket (`/messaging/ws`, query-string access-token auth —
-browsers can't set custom headers during a WS handshake), and basic
+per-user WebSocket (`/messaging/ws`, short-lived single-use ticket
+auth via `POST /auth/ws-ticket` — browsers can't set custom headers
+during a WS handshake, and a long-lived access token must not travel
+in a URL; hardened 2026-08-13, see
+[ADR-0030](./docs/adr/ADR-0030-websocket-ticket-authentication.md)),
+and basic
 online/offline presence (in-memory, read at request time). A message
 is persisted to PostgreSQL before it is broadcast — a disconnected
 recipient never loses a message, only the real-time push. Conversation
@@ -340,6 +344,29 @@ change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
 - [x] Docs updated: `Phase-1.0.md`, `Messaging-Schema.md`,
       `Messaging.md`, `docs/api/README.md`, this file, `ROADMAP.md`,
       `TODO.md`, `CHANGELOG.md`, Engineering Journal, PRD status note
+
+**Milestone 1.0 — Security Hardening (WebSocket Authentication)**
+
+- [x] Replaced query-string access-token WS auth with a short-lived
+      (30s), single-use, database-backed WS ticket (`ws_tickets` table,
+      `POST /auth/ws-ticket`, atomic conditional-`UPDATE` consumption —
+      same pattern as refresh-token rotation and BlueMoon Token
+      consumption); old `?access_token=` scheme no longer authenticates
+      anything
+- [x] `requireWsAuth` rewritten to consume a ticket; `apps/web`'s WS
+      client updated to fetch a fresh ticket before every
+      connect/reconnect
+- [x] New WS ticket coverage: expired/consumed-reuse/concurrent-
+      exactly-one-winner/old-scheme-rejected (fake-container) plus a
+      real-Postgres `ws-ticket.repository.integration.test.ts`
+      mirroring `consumeTokenAndCreateFriendship`'s test structure
+- [x] Full quality gate green; `pnpm test`/`pnpm test:db` at or above
+      the prior 53/53 and 59/59 baselines
+- [x] ADR-0030 (ticket design + rejected alternatives); ADR-0028
+      amended in place (auth sub-decision superseded, rest unchanged)
+- [x] Docs updated: `Messaging.md`, `docs/api/README.md`,
+      `Phase-1.0.md`, this file, `DECISIONS.md`, `CHANGELOG.md`,
+      Engineering Journal
 
 ## Engineering Principles
 

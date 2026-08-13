@@ -62,18 +62,42 @@ caller is already logged in.
 
 ## WebSocket Authentication
 
-The `/messaging/ws` connection is authenticated via the same access
-token used for HTTP, but presented as a query-string parameter
-(`?access_token=`) rather than the `Authorization` header — a browser
-cannot set custom headers during a native WebSocket handshake. A
+The `/messaging/ws` connection is authenticated via a short-lived,
+single-use **WS ticket** — never the long-lived access token, and
+never a refresh token or credential/PIN. A browser cannot set custom
+headers during a native WebSocket handshake, so _something_ has to
+travel in the URL; a disposable ticket bounds that exposure the way a
+bearer credential in the URL never could.
+
+The flow: an already-authenticated caller (normal `Authorization:
+Bearer` access token) calls `POST /auth/ws-ticket` over HTTPS. The
+server generates a cryptographically random 32-byte value, stores only
+its SHA-256 hash (`ws_tickets.ticket_hash`) alongside the issuing
+user/session/device and a 30-second expiry, and returns the raw ticket
+once in the response body — it is never persisted in raw form and
+never logged. The client opens `/messaging/ws?ticket=<raw ticket>`. A
 dedicated `requireWsAuth` middleware
-(`middleware/identity/require-ws-auth.ts`) verifies the identical
-token via the identical `AccessTokenService` Identity already uses; an
-invalid or missing token rejects the handshake with an HTTP-level 401
-before any socket is ever opened — there is no window where an
-unauthenticated client holds an open connection. See
-[ADR-0028](../adr/ADR-0028-messaging-websocket-architecture.md) for
-the full transport design.
+(`middleware/identity/require-ws-auth.ts`) hashes the presented value
+and atomically consumes the matching row — a single conditional
+`UPDATE ... WHERE ticket_hash = $1 AND consumed_at IS NULL AND
+expires_at > now() RETURNING *` — the same exactly-once-consumption
+pattern already used for refresh-token rotation and BlueMoon Token
+consumption. An invalid, expired, or already-consumed ticket rejects
+the handshake with a generic HTTP-level 401 before any socket is ever
+opened — there is no window where an unauthenticated client holds an
+open connection, and under concurrent use of the same ticket exactly
+one caller wins the race.
+
+The ticket is scoped narrowly on purpose: it authenticates nothing but
+the `/messaging/ws` upgrade, cannot be used against any other HTTP
+endpoint, cannot replace the access/refresh token pair, and is not a
+general-purpose authentication token — `infrastructure/identity/
+ws-ticket.ts` is deliberately a separate module from `refresh-token.ts`
+for the same reason `infrastructure/social/blue-moon-token.ts` is: this
+is not authentication infrastructure and must not share a module with
+it. See [ADR-0030](../adr/ADR-0030-websocket-ticket-authentication.md)
+for the full design and the rejected alternatives (reusing the refresh
+cookie, keeping the access token in the query string).
 
 ## Authorization Model for Real-Time Delivery
 

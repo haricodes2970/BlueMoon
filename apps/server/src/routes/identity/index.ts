@@ -14,6 +14,7 @@ import {
   registerRoute,
   revokeDeviceTrustRoute,
   trustDeviceRoute,
+  wsTicketRoute,
 } from "./auth.routes.js";
 
 export interface RegisterAuthRoutesOptions {
@@ -69,4 +70,7 @@ export function registerAuthRoutes(
 
   app.use("/auth/devices", requireAuth(container.accessTokens));
   app.openapi(devicesRoute, controllers.devices);
+
+  app.use("/auth/ws-ticket", requireAuth(container.accessTokens));
+  app.openapi(wsTicketRoute, controllers.wsTicket);
 }

@@ -96,15 +96,19 @@ export function createApp(
     });
 
     // Authenticated WebSocket transport for real-time message
-    // delivery -- see websocket/messaging/connection.ts. Query-string
-    // auth (requireWsAuth), not the Authorization header: browsers
-    // cannot set custom headers during a native WS handshake. This
-    // only registers the Hono-side upgrade handler; actually wiring
-    // the underlying node HTTP server's 'upgrade' event happens in
-    // index.ts's serve({websocket: {server: wss}}) call.
+    // delivery -- see websocket/messaging/connection.ts. Short-lived,
+    // single-use ticket (requireWsAuth), not the long-lived access
+    // token: browsers cannot set custom headers during a native WS
+    // handshake, so a disposable ticket bounds URL exposure where a
+    // bearer credential wouldn't. See
+    // docs/security/Messaging.md#websocket-authentication and
+    // ADR-0030. This only registers the Hono-side upgrade handler;
+    // actually wiring the underlying node HTTP server's 'upgrade'
+    // event happens in index.ts's serve({websocket: {server: wss}})
+    // call.
     app.get(
       "/messaging/ws",
-      requireWsAuth(identityContainer.accessTokens),
+      requireWsAuth(identityContainer.wsTickets),
       upgradeWebSocket(createMessagingConnectionHandlers(messagingContainer)),
     );
   } else if (!messagingContainer) {

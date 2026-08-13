@@ -58,6 +58,11 @@ const devicesResultSchema = z.object({
   data: z.array(deviceSummarySchema),
 });
 
+const wsTicketResultSchema = z.object({
+  success: z.literal(true),
+  data: z.object({ ticket: z.string(), expiresAt: z.string() }),
+});
+
 export const registerRoute = createRoute({
   method: "post",
   path: "/auth/register",
@@ -188,6 +193,18 @@ export const devicesRoute = createRoute({
     200: {
       content: { "application/json": { schema: devicesResultSchema } },
       description: "Every device recorded for the current user",
+    },
+  },
+});
+
+export const wsTicketRoute = createRoute({
+  method: "post",
+  path: "/auth/ws-ticket",
+  responses: {
+    201: {
+      content: { "application/json": { schema: wsTicketResultSchema } },
+      description:
+        "Short-lived, single-use ticket for authenticating the /messaging/ws handshake",
     },
   },
 });

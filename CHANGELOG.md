@@ -193,6 +193,21 @@ repositories,routes,controllers,validation,websocket}/messaging`),
 - `docs/database/Messaging-Schema.md`, `docs/security/Messaging.md`,
   `docs/phases/Phase-1.0.md`; `docs/api/README.md` populated from an
   empty placeholder.
+- `POST /auth/ws-ticket`: issues a short-lived (30s), single-use ticket
+  for the `/messaging/ws` handshake, guarded by the existing,
+  unmodified `requireAuth` middleware. `ws_tickets` Drizzle table +
+  migration (`0003_dashing_network.sql`); domain entity,
+  infrastructure (generate/hash), repository (atomic single-use
+  `consume`), and service layers under `identity/`, following
+  Identity's existing conventions.
+- ADR-0030 (short-lived, single-use WS ticket authentication, replacing
+  the query-string access token; documents the rejected refresh-cookie
+  alternative).
+- New fake-container WS tests (expired ticket, consumed-ticket reuse,
+  concurrent-use-exactly-one-winner, rejection of the old
+  `?access_token=` scheme) and a new
+  `ws-ticket.repository.integration.test.ts` (real Postgres:
+  valid-consume, expired, unknown-hash, double-consume, concurrent).
 - Minimal PINChat frontend (`apps/web/src/`): Zustand `useAuthStore`
   (localStorage-persisted, with an explicit hydration flag), typed API
   client, auto-reconnecting WebSocket hook, `/login`/`/register` pages,
@@ -297,8 +312,33 @@ repositories,routes,controllers,validation,websocket}/messaging`),
   disclosing Milestone 1.0's two deliberate deviations (friendship-
   gated messaging instead of session/PIN; no end-to-end encryption) —
   status note only, canonical requirements unchanged.
+- `middleware/identity/require-ws-auth.ts`'s signature changed from
+  `(accessTokens: AccessTokenService)` to `(wsTickets:
+WsTicketRepository)`; `apps/server/src/app.ts`'s `/messaging/ws`
+  route wiring updated to match. `apps/web`'s `lib/api-client.ts`
+  (`wsUrl` now takes a ticket, new `requestWsTicket`) and
+  `hooks/use-messaging-socket.ts` (fetches a fresh ticket before every
+  connect/reconnect attempt) updated to match.
+- ADR-0028 amended in place: its WebSocket authentication
+  sub-decision (`?access_token=` in the query string) is superseded by
+  ADR-0030; every other decision in that ADR (library choice, per-user
+  connections, persist-then-broadcast, in-memory presence/broadcast)
+  is unchanged. `docs/security/Messaging.md`'s "WebSocket
+  Authentication" section, `docs/api/README.md`'s WS endpoint
+  reference, `docs/phases/Phase-1.0.md`, `DECISIONS.md` (ADR-0030
+  indexed), and the Engineering Journal updated for this hardening
+  pass.
 
 ### Fixed
+
+- **WebSocket authentication exposed a long-lived access token in the
+  `/messaging/ws` URL** (`?access_token=<token>`) — URLs are logged
+  and retained by proxies, browser history, and access logs far more
+  readily than headers or bodies, exposing the credential well beyond
+  its intended lifetime and audience. Replaced with a short-lived,
+  single-use, database-backed ticket obtained over the existing
+  authenticated HTTP path; the old query-string scheme no longer
+  authenticates anything. See ADR-0030.
 
 - Stale "stack choice pending" notes in `docs/backend`, `docs/frontend`,
   `docs/api`, `docs/database`, `docs/deployment` READMEs, contradicting

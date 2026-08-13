@@ -16,6 +16,14 @@ export const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
 /** Refresh token lifetime -- rotated on every use, so this is a ceiling, not a target. */
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+/**
+ * WebSocket connection ticket lifetime -- single-use, only needs to
+ * survive the gap between "requested over HTTPS" and "presented on
+ * the WS handshake", not a normal session window. See
+ * docs/security/Messaging.md#websocket-authentication.
+ */
+export const WS_TICKET_TTL_MS = 30 * 1000; // 30 seconds
+
 export function computeSessionExpiry(createdAt: Date): Date {
   return new Date(createdAt.getTime() + SESSION_MAX_LIFETIME_MS);
 }

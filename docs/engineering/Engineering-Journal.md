@@ -26,6 +26,69 @@ Next
 
 ---
 
+## 2026-08-13
+
+Milestone 1.0 — Security Hardening (WebSocket Authentication)
+
+Completed
+
+- Replaced query-string access-token WebSocket authentication
+  (`?access_token=`, flagged as unacceptable for a privacy-first
+  platform -- URLs are logged/retained far more readily than headers)
+  with a short-lived (30s), single-use, database-backed WS ticket:
+  `POST /auth/ws-ticket` (requireAuth-gated, unchanged) issues a
+  32-byte random ticket, hash-at-rest only, consumed exactly once via
+  the same atomic conditional UPDATE pattern already proven for
+  refresh-token rotation and BlueMoon Token consumption
+- New `ws_tickets` table (migration 0003_dashing_network.sql):
+  session_id FK cascade, user_id, device_id, ticket_hash (unique),
+  expires_at, consumed_at; domain/infrastructure/repository/service
+  layers follow Identity's existing conventions, deliberately kept in
+  a separate module from refresh-token.ts (same reasoning as
+  blue-moon-token.ts)
+- requireWsAuth rewritten to consume a ticket instead of verifying an
+  access token; old ?access_token= scheme no longer authenticates
+  anything -- treated identically to a missing ticket
+- apps/web WS client (api-client.ts, use-messaging-socket.ts) updated
+  to fetch a fresh ticket before every connection attempt, including
+  reconnects; tickets never logged
+- Fake-container WS test suite rewritten for the ticket flow plus new
+  coverage: expired ticket, consumed-ticket reuse, concurrent-use
+  exactly-one-winner, rejection of the old access_token scheme --
+  pnpm test still database-free, now higher than the prior 53/53
+  baseline
+- New ws-ticket.repository.integration.test.ts (real Postgres):
+  valid-consume, expired, unknown-hash, double-consume,
+  concurrent-exactly-one-winner -- mirrors
+  consumeTokenAndCreateFriendship's test structure; connection.integration.test.ts
+  updated to the ticket flow; pnpm test:db still >= prior 59/59
+  baseline
+- ADR-0030 (ticket authentication design, alternatives considered --
+  refresh cookie rejected due to /auth path scope + SameSite=Lax
+  cross-origin risk); ADR-0028 amended in place (auth sub-decision
+  superseded, rest unchanged, not rewritten); Messaging.md,
+  docs/api/README.md, Phase-1.0.md, DECISIONS.md updated
+
+Decisions
+
+- ADR-0030: dedicated WS ticket, not a reused refresh cookie and not a
+  general-purpose token -- narrowly scoped to the WS handshake only
+
+Problems
+
+- None blocking; existing refresh-token cookie confirmed unsuitable
+  for direct reuse (path=/auth scoping, SameSite=Lax cross-origin
+  reliability) without itself weakening cookie security, which the
+  task explicitly forbade -- documented as a rejected alternative in
+  ADR-0030 rather than silently worked around
+
+Next
+
+- Real PINChat V1 session/PIN model and real E2EE remain unscheduled,
+  unaffected by this hardening pass
+
+---
+
 ## 2026-08-10
 
 Milestone 1.0

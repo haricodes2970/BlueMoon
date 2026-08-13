@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { wsUrl, type MessageDto } from "@/lib/api-client";
+import { requestWsTicket, wsUrl, type MessageDto } from "@/lib/api-client";
 
 export type InboundEvent =
   | { type: "message"; data: MessageDto }
@@ -33,9 +33,23 @@ export function useMessagingSocket(
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function connect() {
+    async function connect() {
       if (cancelled) return;
-      socket = new WebSocket(wsUrl(accessToken!));
+
+      // A fresh, single-use ticket is required for every handshake
+      // attempt (including reconnects) -- it cannot be reused. Never
+      // logged: it's a disposable credential, same handling as the
+      // access token itself.
+      let ticket: string;
+      try {
+        ticket = (await requestWsTicket(accessToken!)).ticket;
+      } catch {
+        if (!cancelled) reconnectTimer = setTimeout(connect, 2000);
+        return;
+      }
+      if (cancelled) return;
+
+      socket = new WebSocket(wsUrl(ticket));
       socketRef.current = socket;
 
       socket.onopen = () => setConnected(true);

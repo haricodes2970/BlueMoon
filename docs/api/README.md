@@ -16,7 +16,9 @@ See [Authentication.md](../security/Authentication.md) and
 `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`,
 `POST /auth/refresh`, `POST /auth/change-credential`,
 `POST /auth/trust-device`, `DELETE /auth/trust-device/:id`,
-`GET /auth/me`, `GET /auth/devices`.
+`GET /auth/me`, `GET /auth/devices`, `POST /auth/ws-ticket` (issues a
+short-lived, single-use ticket for the `/messaging/ws` handshake — see
+[Messaging.md](../security/Messaging.md#websocket-authentication)).
 
 ## Social — BlueMoon Token & Friendship (`/social/*`)
 
@@ -46,14 +48,18 @@ There is no HTTP endpoint to send a message — see
 [ADR-0028](../adr/ADR-0028-messaging-websocket-architecture.md) for
 why real-time delivery is WebSocket-only.
 
-### WebSocket — `GET /messaging/ws?access_token=<token>`
+### WebSocket — `GET /messaging/ws?ticket=<ws ticket>`
 
 One connection per user (not per conversation); receives events for
-every conversation that user is part of. See
-[ADR-0028](../adr/ADR-0028-messaging-websocket-architecture.md) for
-the full transport design and
+every conversation that user is part of. Authenticated via a
+short-lived, single-use ticket obtained from `POST /auth/ws-ticket` —
+**not** the long-lived access token, which must never appear in a URL.
+See [ADR-0028](../adr/ADR-0028-messaging-websocket-architecture.md)
+for the transport design,
+[ADR-0030](../adr/ADR-0030-websocket-ticket-authentication.md) for the
+ticket authentication design, and
 [Messaging.md](../security/Messaging.md#websocket-authentication) for
-the authentication model.
+the full authentication model.
 
 **Client → server events:**
 

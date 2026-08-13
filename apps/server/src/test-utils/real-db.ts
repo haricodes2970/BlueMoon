@@ -42,6 +42,7 @@ export async function resetAllTables(db: Database): Promise<void> {
       audit_events,
       login_attempts,
       refresh_tokens,
+      ws_tickets,
       sessions,
       trusted_devices,
       devices,

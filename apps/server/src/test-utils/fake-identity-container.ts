@@ -14,6 +14,7 @@ import {
   createTrustDeviceUseCase,
 } from "../services/identity/trust-device.service.js";
 import { createChangeCredentialUseCase } from "../services/identity/change-credential.service.js";
+import { createIssueWsTicketUseCase } from "../services/identity/issue-ws-ticket.service.js";
 import type { IdentityContainer } from "../container.js";
 import type {
   Device,
@@ -25,6 +26,7 @@ import type {
   Session,
 } from "../domain/identity/entities/session.js";
 import type { User } from "../domain/identity/entities/user.js";
+import type { WsTicket } from "../domain/identity/entities/ws-ticket.js";
 import type { IdentityAuditEvent } from "../events/identity-events.js";
 
 /**
@@ -45,6 +47,7 @@ export function createFakeIdentityContainer(accessTokenSecret: string): {
   const trustedDevices = new Map<string, TrustedDevice>();
   const sessions = new Map<string, Session>();
   const refreshTokens = new Map<string, RefreshToken>();
+  const wsTickets = new Map<string, WsTicket>();
   const loginAttempts: LoginAttempt[] = [];
   const auditEvents: IdentityAuditEvent[] = [];
 
@@ -227,6 +230,38 @@ export function createFakeIdentityContainer(accessTokenSecret: string): {
     },
   };
 
+  const wsTicketsRepo: IdentityContainer["wsTickets"] = {
+    async create(input) {
+      const ticket: WsTicket = {
+        id: randomUUID(),
+        sessionId: input.sessionId,
+        userId: input.userId,
+        deviceId: input.deviceId,
+        ticketHash: input.ticketHash,
+        expiresAt: input.expiresAt,
+        consumedAt: null,
+        createdAt: new Date(),
+      };
+      wsTickets.set(ticket.id, ticket);
+      return ticket;
+    },
+    async consume(ticketHash, now) {
+      const ticket = [...wsTickets.values()].find(
+        (t) =>
+          t.ticketHash === ticketHash &&
+          t.consumedAt === null &&
+          t.expiresAt > now,
+      );
+      if (!ticket) return null;
+      // Mirrors the real repository's atomic conditional UPDATE: the
+      // find-then-mutate above is safe here only because the fake's
+      // Map access is single-threaded/synchronous, unlike a real
+      // concurrent-request race against Postgres.
+      ticket.consumedAt = now;
+      return ticket;
+    },
+  };
+
   const loginAttemptsRepo = {
     async record(input: Omit<LoginAttempt, "id" | "createdAt">) {
       const attempt: LoginAttempt = {
@@ -307,6 +342,8 @@ export function createFakeIdentityContainer(accessTokenSecret: string): {
       verifyCredential,
       audit,
     }),
+    wsTickets: wsTicketsRepo,
+    issueWsTicket: createIssueWsTicketUseCase({ wsTickets: wsTicketsRepo }),
   };
 
   return { container, auditEvents, loginAttempts };

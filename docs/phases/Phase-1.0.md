@@ -154,17 +154,20 @@ unmodified `requireAuth`. No `POST` to send a message; see
 1.13.7 → 2.1.0 for its native `upgradeWebSocket` export (the installed
 1.x version has no WebSocket support at all — confirmed by inspecting
 its type declarations directly before deciding to bump rather than use
-the deprecated `@hono/node-ws`). `requireWsAuth` authenticates via
-`?access_token=` query parameter (not the `Authorization` header,
-which browsers cannot set during a WS handshake) using the identical
-`AccessTokenService` HTTP uses; a rejected handshake never opens a
-socket. One connection per user delivers events for every conversation
-they're part of — authorization computed server-side from row data,
-never a client-declared subscription. `send_message` is the only
-inbound event; `message`/`error` are the only outbound events. See
+the deprecated `@hono/node-ws`). At the time this milestone shipped,
+`requireWsAuth` authenticated via `?access_token=` query parameter
+(not the `Authorization` header, which browsers cannot set during a WS
+handshake) using the identical `AccessTokenService` HTTP uses; a
+rejected handshake never opened a socket. **This was replaced by a
+short-lived, single-use WS ticket in a post-milestone security
+hardening pass — see the note at the end of this document and
+[ADR-0030](../adr/ADR-0030-websocket-ticket-authentication.md).** One
+connection per user delivers events for every conversation they're
+part of — authorization computed server-side from row data, never a
+client-declared subscription. `send_message` is the only inbound
+event; `message`/`error` are the only outbound events. See
 [ADR-0028](../adr/ADR-0028-messaging-websocket-architecture.md) and
-[docs/api/README.md](../api/README.md#websocket--get-messagingwsaccess_tokentoken)
-for the full event contract.
+[docs/api/README.md](../api/README.md) for the full event contract.
 
 **Frontend** (`apps/web/src/`): Zustand `useAuthStore`
 (localStorage-persisted access token, with an explicit
@@ -418,3 +421,22 @@ documentation, remains entirely unimplemented and unscheduled — see
 Future Implications for the open architectural question it raises.
 Not started as part of this phase, per the founder's explicit interim
 scoping decision.
+
+## Post-Milestone Security Hardening (2026-08-13)
+
+Before final production-readiness sign-off, the WebSocket
+authentication described above (`?access_token=` query-string, the
+same long-lived access token used for HTTP) was identified as
+unacceptable for a privacy-first platform — URLs are logged and
+retained by proxies, browser history, and access logs far more readily
+than headers or bodies, exposing a long-lived bearer credential well
+beyond its intended audience. It was replaced with a short-lived
+(30-second), single-use, database-backed WS ticket issued over the
+existing authenticated HTTP path (`POST /auth/ws-ticket`) and consumed
+exactly once via the same atomic conditional `UPDATE` pattern already
+used for refresh-token rotation and BlueMoon Token consumption. See
+[ADR-0030](../adr/ADR-0030-websocket-ticket-authentication.md) for the
+full design and rejected alternatives, and
+[Messaging.md](../security/Messaging.md#websocket-authentication) for
+the current authentication model. No other Milestone 1.0 behavior
+(transport, presence, delivery ordering, encryption status) changed.

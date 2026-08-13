@@ -21,6 +21,7 @@ import type {
   registerRoute,
   revokeDeviceTrustRoute,
   trustDeviceRoute,
+  wsTicketRoute,
 } from "../../routes/identity/auth.routes.js";
 
 export interface AuthControllerDeps {
@@ -224,6 +225,27 @@ export function createAuthControllers(deps: AuthControllerDeps) {
     );
   };
 
+  const wsTicket: RouteHandler<typeof wsTicketRoute> = async (c) => {
+    const auth = c.get("auth");
+
+    const result = await container.issueWsTicket({
+      userId: auth.userId,
+      sessionId: auth.sessionId,
+      deviceId: auth.deviceId,
+    });
+
+    return c.json(
+      {
+        success: true as const,
+        data: {
+          ticket: result.ticket,
+          expiresAt: result.expiresAt.toISOString(),
+        },
+      },
+      201,
+    );
+  };
+
   return {
     register,
     login,
@@ -234,5 +256,6 @@ export function createAuthControllers(deps: AuthControllerDeps) {
     revokeDeviceTrust,
     me,
     devices,
+    wsTicket,
   };
 }

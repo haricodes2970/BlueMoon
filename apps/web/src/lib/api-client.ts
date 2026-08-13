@@ -116,8 +116,22 @@ export function listMessages(
   });
 }
 
-export function wsUrl(accessToken: string): string {
+export interface WsTicket {
+  ticket: string;
+  expiresAt: string;
+}
+
+/**
+ * Short-lived, single-use ticket for the WS handshake -- never the
+ * long-lived access token itself, which must not travel in a URL. See
+ * docs/security/Messaging.md#websocket-authentication.
+ */
+export function requestWsTicket(accessToken: string): Promise<WsTicket> {
+  return request("/auth/ws-ticket", { method: "POST", accessToken });
+}
+
+export function wsUrl(ticket: string): string {
   const httpUrl = new URL(API_URL);
   const protocol = httpUrl.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${httpUrl.host}/messaging/ws?access_token=${accessToken}`;
+  return `${protocol}//${httpUrl.host}/messaging/ws?ticket=${ticket}`;
 }

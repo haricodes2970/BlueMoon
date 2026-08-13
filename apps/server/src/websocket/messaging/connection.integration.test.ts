@@ -129,8 +129,20 @@ describe.skipIf(!hasTestDatabase())(
       return data.id;
     }
 
-    function wsUrl(port: number, accessToken: string): string {
-      return `ws://127.0.0.1:${port}/messaging/ws?access_token=${accessToken}`;
+    async function getTicket(
+      app: Setup["app"],
+      accessToken: string,
+    ): Promise<string> {
+      const res = await app.request("/auth/ws-ticket", {
+        method: "POST",
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+      const body = (await res.json()) as { data: { ticket: string } };
+      return body.data.ticket;
+    }
+
+    function wsUrl(port: number, ticket: string): string {
+      return `ws://127.0.0.1:${port}/messaging/ws?ticket=${ticket}`;
     }
 
     function waitForOpen(ws: WebSocket): Promise<void> {
@@ -168,8 +180,8 @@ describe.skipIf(!hasTestDatabase())(
       if (handle) await stopWsTestServer(handle);
     });
 
-    function connect(handle: Setup, accessToken: string): WebSocket {
-      const ws = new WebSocket(wsUrl(handle.port, accessToken));
+    function connect(handle: Setup, ticket: string): WebSocket {
+      const ws = new WebSocket(wsUrl(handle.port, ticket));
       ws.on("error", () => {});
       sockets.push(ws);
       return ws;
@@ -182,8 +194,10 @@ describe.skipIf(!hasTestDatabase())(
       await befriend(handle.app, a, b, "wspgalice");
       const conversationId = await createConversation(handle.app, a, b.userId);
 
-      const wsA = connect(handle, a.accessToken);
-      const wsB = connect(handle, b.accessToken);
+      const ticketA = await getTicket(handle.app, a.accessToken);
+      const ticketB = await getTicket(handle.app, b.accessToken);
+      const wsA = connect(handle, ticketA);
+      const wsB = connect(handle, ticketB);
       await Promise.all([waitForOpen(wsA), waitForOpen(wsB)]);
 
       const received = waitForMessage(wsB);
@@ -217,7 +231,8 @@ describe.skipIf(!hasTestDatabase())(
       await befriend(handle.app, a, b, "wspgcarol");
       const conversationId = await createConversation(handle.app, a, b.userId);
 
-      const wsA = connect(handle, a.accessToken);
+      const ticketA = await getTicket(handle.app, a.accessToken);
+      const wsA = connect(handle, ticketA);
       await waitForOpen(wsA);
 
       wsA.send(

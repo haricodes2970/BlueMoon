@@ -23,7 +23,12 @@ import {
   createUserRepository,
   type UserRepository,
 } from "./repositories/identity/user.repository.js";
+import {
+  createWsTicketRepository,
+  type WsTicketRepository,
+} from "./repositories/identity/ws-ticket.repository.js";
 import { createChangeCredentialUseCase } from "./services/identity/change-credential.service.js";
+import { createIssueWsTicketUseCase } from "./services/identity/issue-ws-ticket.service.js";
 import { createLoginUseCase } from "./services/identity/login.service.js";
 import { createLogoutUseCase } from "./services/identity/logout.service.js";
 import { createRefreshSessionUseCase } from "./services/identity/refresh-session.service.js";
@@ -54,6 +59,8 @@ export interface IdentityContainer {
   trustDevice: ReturnType<typeof createTrustDeviceUseCase>;
   revokeDeviceTrust: ReturnType<typeof createRevokeDeviceTrustUseCase>;
   changeCredential: ReturnType<typeof createChangeCredentialUseCase>;
+  wsTickets: WsTicketRepository;
+  issueWsTicket: ReturnType<typeof createIssueWsTicketUseCase>;
 }
 
 export function createIdentityContainer(
@@ -63,6 +70,7 @@ export function createIdentityContainer(
   const users = createUserRepository(db);
   const devices = createDeviceRepository(db);
   const trustedDevices = createTrustedDeviceRepository(db);
+  const wsTickets = createWsTicketRepository(db);
   const sessions = createSessionRepository(db);
   const refreshTokens = createRefreshTokenRepository(db);
   const loginAttempts = createLoginAttemptRepository(db);
@@ -116,6 +124,8 @@ export function createIdentityContainer(
       verifyCredential,
       audit,
     }),
+    wsTickets,
+    issueWsTicket: createIssueWsTicketUseCase({ wsTickets }),
   };
 }
 

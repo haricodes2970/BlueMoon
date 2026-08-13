@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createApp } from "../../app.js";
+import { hashWsTicket } from "../../infrastructure/identity/ws-ticket.js";
 import { createFakeIdentityContainer } from "../../test-utils/fake-identity-container.js";
 import { createFakeSocialContainer } from "../../test-utils/fake-social-container.js";
 import { createFakeMessagingContainer } from "../../test-utils/fake-messaging-container.js";
@@ -32,7 +33,12 @@ async function setup() {
     messagingContainer: messaging.container,
   });
   const handle = await startWsTestServer(app);
-  return { app, container: messaging.container, ...handle };
+  return {
+    app,
+    container: messaging.container,
+    identityContainer: identity.container,
+    ...handle,
+  };
 }
 
 type Setup = Awaited<ReturnType<typeof setup>>;
@@ -93,9 +99,28 @@ async function createConversation(
   return data.id;
 }
 
-function wsUrl(port: number, accessToken?: string): string {
-  const query = accessToken ? `?access_token=${accessToken}` : "";
+// Mirrors the real flow: an already-authenticated caller requests a
+// short-lived, single-use ticket over the normal Bearer-authenticated
+// HTTP path before ever touching the WS URL.
+async function getTicket(
+  app: Setup["app"],
+  accessToken: string,
+): Promise<string> {
+  const res = await app.request("/auth/ws-ticket", {
+    method: "POST",
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  const body = (await res.json()) as { data: { ticket: string } };
+  return body.data.ticket;
+}
+
+function wsUrl(port: number, ticket?: string): string {
+  const query = ticket ? `?ticket=${ticket}` : "";
   return `ws://127.0.0.1:${port}/messaging/ws${query}`;
+}
+
+function legacyAccessTokenWsUrl(port: number, accessToken: string): string {
+  return `ws://127.0.0.1:${port}/messaging/ws?access_token=${accessToken}`;
 }
 
 function waitForOpen(ws: WebSocket): Promise<void> {
@@ -151,8 +176,8 @@ describe("Messaging WebSocket transport", () => {
     await stopWsTestServer(handle);
   });
 
-  function connect(accessToken?: string): WebSocket {
-    const ws = new WebSocket(wsUrl(handle.port, accessToken));
+  function connect(url: string): WebSocket {
+    const ws = new WebSocket(url);
     // A rejected handshake (see "unexpected-response" tests) makes
     // `ws` emit a second, async "error" event during cleanup; without
     // a listener Node treats that as an uncaught exception. Harmless
@@ -162,21 +187,97 @@ describe("Messaging WebSocket transport", () => {
     return ws;
   }
 
-  it("rejects a connection with no access token", async () => {
-    const ws = connect();
+  function connectWithTicket(ticket?: string): WebSocket {
+    return connect(wsUrl(handle.port, ticket));
+  }
+
+  // Resolves once the handshake settles either way -- used for the
+  // concurrent-use test, where both branches (open vs. rejected) are
+  // expected outcomes, not a pass/fail signal by themselves.
+  function attemptConnect(
+    ticket: string,
+  ): Promise<{ opened: boolean; statusCode?: number }> {
+    const ws = connectWithTicket(ticket);
+    return new Promise((resolve) => {
+      ws.once("open", () => resolve({ opened: true }));
+      ws.once("unexpected-response", (_req, res) => {
+        resolve({ opened: false, statusCode: res.statusCode });
+      });
+    });
+  }
+
+  it("rejects a connection with no ticket", async () => {
+    const ws = connectWithTicket();
     const { statusCode } = await waitForRejection(ws);
     expect(statusCode).toBe(401);
   });
 
-  it("rejects a connection with an invalid access token", async () => {
-    const ws = connect("not-a-real-token");
+  it("rejects a connection with an invalid ticket", async () => {
+    const ws = connectWithTicket("not-a-real-ticket");
     const { statusCode } = await waitForRejection(ws);
     expect(statusCode).toBe(401);
+  });
+
+  it("rejects the old query-string access_token scheme", async () => {
+    const a = await registerUser(handle.app, "wsoldscheme");
+    const ws = connect(legacyAccessTokenWsUrl(handle.port, a.accessToken));
+    const { statusCode } = await waitForRejection(ws);
+    expect(statusCode).toBe(401);
+  });
+
+  it("rejects an expired ticket", async () => {
+    const a = await registerUser(handle.app, "wsexpired");
+    const payload = await handle.identityContainer.accessTokens.verify(
+      a.accessToken,
+    );
+    if (!payload) throw new Error("expected a valid access token payload");
+
+    const rawTicket = "expired-raw-ticket-value-for-testing";
+    await handle.identityContainer.wsTickets.create({
+      sessionId: payload.sessionId,
+      userId: payload.userId,
+      deviceId: payload.deviceId,
+      ticketHash: hashWsTicket(rawTicket),
+      expiresAt: new Date(Date.now() - 1000),
+    });
+
+    const ws = connectWithTicket(rawTicket);
+    const { statusCode } = await waitForRejection(ws);
+    expect(statusCode).toBe(401);
+  });
+
+  it("rejects reuse of an already-consumed ticket", async () => {
+    const a = await registerUser(handle.app, "wsreuse");
+    const ticket = await getTicket(handle.app, a.accessToken);
+
+    const ws1 = connectWithTicket(ticket);
+    await waitForOpen(ws1);
+
+    const ws2 = connectWithTicket(ticket);
+    const { statusCode } = await waitForRejection(ws2);
+    expect(statusCode).toBe(401);
+  });
+
+  it("allows exactly one connection to win a concurrent race for the same ticket", async () => {
+    const a = await registerUser(handle.app, "wsconcurrent");
+    const ticket = await getTicket(handle.app, a.accessToken);
+
+    const [resultX, resultY] = await Promise.all([
+      attemptConnect(ticket),
+      attemptConnect(ticket),
+    ]);
+
+    const opened = [resultX, resultY].filter((r) => r.opened);
+    const rejected = [resultX, resultY].filter((r) => !r.opened);
+    expect(opened).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.statusCode).toBe(401);
   });
 
   it("accepts an authenticated connection", async () => {
     const a = await registerUser(handle.app, "wsalice");
-    const ws = connect(a.accessToken);
+    const ticket = await getTicket(handle.app, a.accessToken);
+    const ws = connectWithTicket(ticket);
     await expect(waitForOpen(ws)).resolves.toBeUndefined();
   });
 
@@ -186,8 +287,10 @@ describe("Messaging WebSocket transport", () => {
     await befriend(handle.app, a, b, "wsbob");
     const conversationId = await createConversation(handle.app, a, b.userId);
 
-    const wsA = connect(a.accessToken);
-    const wsB = connect(b.accessToken);
+    const ticketA = await getTicket(handle.app, a.accessToken);
+    const ticketB = await getTicket(handle.app, b.accessToken);
+    const wsA = connectWithTicket(ticketA);
+    const wsB = connectWithTicket(ticketB);
     await Promise.all([waitForOpen(wsA), waitForOpen(wsB)]);
 
     const received = waitForMessage(wsB);
@@ -211,7 +314,8 @@ describe("Messaging WebSocket transport", () => {
     await befriend(handle.app, a, b, "wsdave");
     const conversationId = await createConversation(handle.app, a, b.userId);
 
-    const wsA = connect(a.accessToken);
+    const ticketA = await getTicket(handle.app, a.accessToken);
+    const wsA = connectWithTicket(ticketA);
     await waitForOpen(wsA);
     // B never connects.
 
@@ -241,7 +345,8 @@ describe("Messaging WebSocket transport", () => {
     await befriend(handle.app, a, b, "wsfrank");
     const conversationId = await createConversation(handle.app, a, b.userId);
 
-    const wsOutsider = connect(outsider.accessToken);
+    const outsiderTicket = await getTicket(handle.app, outsider.accessToken);
+    const wsOutsider = connectWithTicket(outsiderTicket);
     await waitForOpen(wsOutsider);
 
     const received = waitForMessage(wsOutsider);
@@ -263,7 +368,8 @@ describe("Messaging WebSocket transport", () => {
     await befriend(handle.app, a, b, "wsivan");
     const conversationId = await createConversation(handle.app, a, b.userId);
 
-    const wsA = connect(a.accessToken);
+    const ticketA = await getTicket(handle.app, a.accessToken);
+    const wsA = connectWithTicket(ticketA);
     await waitForOpen(wsA);
 
     const received = waitForMessage(wsA);
@@ -282,8 +388,11 @@ describe("Messaging WebSocket transport", () => {
     await befriend(handle.app, a, b, "wskevin");
     const conversationId = await createConversation(handle.app, a, b.userId);
 
-    const wsA1 = connect(a.accessToken);
-    const wsA2 = connect(a.accessToken);
+    // Each socket needs its own ticket -- a ticket is single-use.
+    const ticketA1 = await getTicket(handle.app, a.accessToken);
+    const ticketA2 = await getTicket(handle.app, a.accessToken);
+    const wsA1 = connectWithTicket(ticketA1);
+    const wsA2 = connectWithTicket(ticketA2);
     await Promise.all([waitForOpen(wsA1), waitForOpen(wsA2)]);
 
     const receivedOnSecondTab = waitForMessage(wsA2);
@@ -307,7 +416,8 @@ describe("Messaging WebSocket transport", () => {
 
     expect(handle.container.presence.isOnline(a.userId)).toBe(false);
 
-    const wsA = connect(a.accessToken);
+    const ticketA = await getTicket(handle.app, a.accessToken);
+    const wsA = connectWithTicket(ticketA);
     await waitForOpen(wsA);
     expect(handle.container.presence.isOnline(a.userId)).toBe(true);
 

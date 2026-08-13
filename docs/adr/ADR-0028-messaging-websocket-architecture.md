@@ -1,7 +1,15 @@
 # ADR-0028: WebSocket Transport, Presence, and Delivery Model for Messaging
 
 - **Date:** 2026-08-10
-- **Status:** Accepted
+- **Status:** Accepted (authentication sub-decision superseded by
+  [ADR-0030](./ADR-0030-websocket-ticket-authentication.md) — see below)
+
+> **2026-08-13 amendment:** the "Authentication" decision below
+> (long-lived access token in the `?access_token=` query string) was
+> replaced by a short-lived, single-use WS ticket — see
+> [ADR-0030](./ADR-0030-websocket-ticket-authentication.md). Every
+> other decision in this ADR (library choice, per-user connections,
+> persist-then-broadcast, in-memory presence/broadcast) is unchanged.
 
 ## Context
 

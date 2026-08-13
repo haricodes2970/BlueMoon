@@ -1,36 +1,43 @@
 import type { MiddlewareHandler } from "hono";
 import { UnauthorizedError } from "@bluemoon/utils";
-import type { AccessTokenService } from "../../infrastructure/identity/access-token.js";
+import { hashWsTicket } from "../../infrastructure/identity/ws-ticket.js";
+import type { WsTicketRepository } from "../../repositories/identity/ws-ticket.repository.js";
 
 /**
- * Same contract as requireAuth, but reads the access token from the
- * `access_token` query-string parameter instead of the Authorization
- * header -- browsers cannot set custom headers during a native
- * WebSocket handshake. Ordinary Hono middleware, mounted immediately
- * before `upgradeWebSocket(...)` on the same route: a thrown
+ * Same contract as requireAuth, but authenticates the WS handshake via
+ * a short-lived, single-use ticket (`?ticket=`) instead of the
+ * long-lived access token -- browsers cannot set custom headers during
+ * a native WebSocket handshake, so *something* has to travel in the
+ * URL; a ticket that is atomically consumed on first use and expires
+ * in seconds bounds the exposure a long-lived bearer credential would
+ * not. Ordinary Hono middleware, mounted immediately before
+ * `upgradeWebSocket(...)` on the same route: a thrown
  * UnauthorizedError here is caught by the normal error handler before
  * the upgrade happens, so an unauthenticated client gets a rejected
  * handshake (HTTP error response), never an open, unauthenticated
- * socket. Never bypasses requireAuth's access-control decisions --
- * it verifies the identical access token via the identical
- * AccessTokenService.
+ * socket. See docs/security/Messaging.md#websocket-authentication and
+ * ADR-0030.
  */
 export function requireWsAuth(
-  accessTokens: AccessTokenService,
+  wsTickets: WsTicketRepository,
 ): MiddlewareHandler {
   return async (c, next) => {
-    const token = c.req.query("access_token");
+    const ticket = c.req.query("ticket");
 
-    if (!token) {
-      throw new UnauthorizedError("Missing access_token query parameter");
+    if (!ticket) {
+      throw new UnauthorizedError("Missing ticket query parameter");
     }
 
-    const payload = await accessTokens.verify(token);
-    if (!payload) {
-      throw new UnauthorizedError("Invalid or expired access token");
+    const consumed = await wsTickets.consume(hashWsTicket(ticket), new Date());
+    if (!consumed) {
+      throw new UnauthorizedError("Invalid, expired, or already-used ticket");
     }
 
-    c.set("auth", payload);
+    c.set("auth", {
+      userId: consumed.userId,
+      sessionId: consumed.sessionId,
+      deviceId: consumed.deviceId,
+    });
     await next();
   };
 }
