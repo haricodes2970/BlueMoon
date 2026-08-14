@@ -22,7 +22,9 @@ import {
   type MessagingContainer,
 } from "./messaging-container.js";
 import { requireWsAuth } from "./middleware/identity/require-ws-auth.js";
+import { validateWsOrigin } from "./middleware/validate-ws-origin.js";
 import { createMessagingConnectionHandlers } from "./websocket/messaging/connection.js";
+import { createRateLimiter } from "./infrastructure/identity/rate-limiter.js";
 import { createServerLogger } from "./logger.js";
 import { appVersion } from "./version.js";
 import type { ServerEnv } from "./env.js";
@@ -44,7 +46,13 @@ export function createApp(
   app.use("*", requestContext(logger));
   // apps/web runs on a different origin (port 3000 in dev); browsers
   // enforce CORS on every fetch() call this API receives from it.
-  app.use("*", cors({ origin: env.WEB_ORIGIN }));
+  // credentials: true is required for the browser to send/store the
+  // bm_refresh cookie on a cross-origin fetch() -- without it, Set-
+  // Cookie from a cross-origin response is silently ignored, which is
+  // exactly what makes the refresh cookie unusable across apps/web and
+  // apps/server's separate origins otherwise (see cookies.ts,
+  // COOKIE_SAME_SITE in env.ts).
+  app.use("*", cors({ origin: env.WEB_ORIGIN, credentials: true }));
   app.onError(errorHandler);
 
   registerHealthRoute(app, env);
@@ -71,6 +79,7 @@ export function createApp(
     registerAuthRoutes(app, {
       container: identityContainer,
       isProduction: env.NODE_ENV === "production",
+      cookieSameSite: env.COOKIE_SAME_SITE,
     });
   } else {
     logger.warn(
@@ -102,14 +111,27 @@ export function createApp(
     // handshake, so a disposable ticket bounds URL exposure where a
     // bearer credential wouldn't. See
     // docs/security/Messaging.md#websocket-authentication and
-    // ADR-0030. This only registers the Hono-side upgrade handler;
-    // actually wiring the underlying node HTTP server's 'upgrade'
-    // event happens in index.ts's serve({websocket: {server: wss}})
-    // call.
+    // ADR-0030. validateWsOrigin runs first as defense-in-depth
+    // (rejects a mismatched, present Origin header before even
+    // touching a ticket); a per-user limiter bounds send_message
+    // volume once connected -- see websocket/messaging/connection.ts.
+    // This only registers the Hono-side upgrade handler; actually
+    // wiring the underlying node HTTP server's 'upgrade' event happens
+    // in index.ts's serve({websocket: {server: wss}}) call.
+    const sendMessageLimiter = createRateLimiter({
+      limit: 20,
+      windowMs: 10 * 1000,
+    });
     app.get(
       "/messaging/ws",
+      validateWsOrigin(env.WEB_ORIGIN),
       requireWsAuth(identityContainer.wsTickets),
-      upgradeWebSocket(createMessagingConnectionHandlers(messagingContainer)),
+      upgradeWebSocket(
+        createMessagingConnectionHandlers(
+          messagingContainer,
+          sendMessageLimiter,
+        ),
+      ),
     );
   } else if (!messagingContainer) {
     logger.warn(

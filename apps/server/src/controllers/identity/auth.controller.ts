@@ -9,6 +9,7 @@ import {
   clearRefreshTokenCookie,
   getRefreshTokenCookie,
   setRefreshTokenCookie,
+  type CookieSameSite,
 } from "../../infrastructure/identity/cookies.js";
 import type { IdentityContainer } from "../../container.js";
 import type {
@@ -27,6 +28,7 @@ import type {
 export interface AuthControllerDeps {
   container: IdentityContainer;
   isProduction: boolean;
+  cookieSameSite: CookieSameSite;
 }
 
 /**
@@ -38,7 +40,7 @@ export interface AuthControllerDeps {
  * lives here.
  */
 export function createAuthControllers(deps: AuthControllerDeps) {
-  const { container, isProduction } = deps;
+  const { container, isProduction, cookieSameSite } = deps;
 
   const register: RouteHandler<typeof registerRoute> = async (c) => {
     const body = c.req.valid("json");
@@ -48,7 +50,7 @@ export function createAuthControllers(deps: AuthControllerDeps) {
     await container.registerUser({ ...body, deviceLabel, ipAddress });
     const result = await container.login({ ...body, deviceLabel, ipAddress });
 
-    setRefreshTokenCookie(c, result.refreshToken, isProduction);
+    setRefreshTokenCookie(c, result.refreshToken, isProduction, cookieSameSite);
     return c.json(
       {
         success: true as const,
@@ -75,7 +77,7 @@ export function createAuthControllers(deps: AuthControllerDeps) {
       ipAddress,
     });
 
-    setRefreshTokenCookie(c, result.refreshToken, isProduction);
+    setRefreshTokenCookie(c, result.refreshToken, isProduction, cookieSameSite);
     return c.json(
       {
         success: true as const,
@@ -98,7 +100,7 @@ export function createAuthControllers(deps: AuthControllerDeps) {
 
     await container.logout({ sessionId: auth.sessionId, ipAddress });
 
-    clearRefreshTokenCookie(c, isProduction);
+    clearRefreshTokenCookie(c, isProduction, cookieSameSite);
     return c.json({ success: true as const, data: { ok: true as const } }, 200);
   };
 
@@ -112,7 +114,7 @@ export function createAuthControllers(deps: AuthControllerDeps) {
 
     const result = await container.refreshSession({ refreshToken, ipAddress });
 
-    setRefreshTokenCookie(c, result.refreshToken, isProduction);
+    setRefreshTokenCookie(c, result.refreshToken, isProduction, cookieSameSite);
     return c.json(
       { success: true as const, data: { accessToken: result.accessToken } },
       200,
@@ -134,7 +136,7 @@ export function createAuthControllers(deps: AuthControllerDeps) {
 
     // changeCredential revokes every session for the user, including
     // this request's own -- the client must log in again.
-    clearRefreshTokenCookie(c, isProduction);
+    clearRefreshTokenCookie(c, isProduction, cookieSameSite);
     return c.json({ success: true as const, data: { ok: true as const } }, 200);
   };
 

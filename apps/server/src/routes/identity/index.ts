@@ -1,6 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createAuthControllers } from "../../controllers/identity/auth.controller.js";
 import type { IdentityContainer } from "../../container.js";
+import type { CookieSameSite } from "../../infrastructure/identity/cookies.js";
 import { rateLimit } from "../../middleware/identity/rate-limit.js";
 import { requireAuth } from "../../middleware/identity/require-auth.js";
 import { createRateLimiter } from "../../infrastructure/identity/rate-limiter.js";
@@ -20,21 +21,28 @@ import {
 export interface RegisterAuthRoutesOptions {
   container: IdentityContainer;
   isProduction: boolean;
+  cookieSameSite?: CookieSameSite;
 }
 
 /**
- * Mounts every Identity endpoint: rate limiting on the two
- * credential-guessing-relevant routes (register, login), auth
- * middleware on everything that requires an authenticated session,
- * then the route/controller pair itself. Limits are per-process (see
+ * Mounts every Identity endpoint: rate limiting on the
+ * credential-guessing-relevant routes (register, login) and on WS
+ * ticket issuance (bounds how fast a caller can mint disposable WS
+ * connection credentials), auth middleware on everything that
+ * requires an authenticated session, then the route/controller pair
+ * itself. Limits are per-process (see
  * infrastructure/identity/rate-limiter.ts's documented limitation).
  */
 export function registerAuthRoutes(
   app: OpenAPIHono,
   options: RegisterAuthRoutesOptions,
 ): void {
-  const { container, isProduction } = options;
-  const controllers = createAuthControllers({ container, isProduction });
+  const { container, isProduction, cookieSameSite = "Lax" } = options;
+  const controllers = createAuthControllers({
+    container,
+    isProduction,
+    cookieSameSite,
+  });
 
   const registerLimiter = createRateLimiter({
     limit: 5,
@@ -43,6 +51,10 @@ export function registerAuthRoutes(
   const loginLimiter = createRateLimiter({
     limit: 10,
     windowMs: 15 * 60 * 1000,
+  });
+  const wsTicketLimiter = createRateLimiter({
+    limit: 30,
+    windowMs: 60 * 1000,
   });
 
   app.use("/auth/register", rateLimit(registerLimiter, "register"));
@@ -72,5 +84,6 @@ export function registerAuthRoutes(
   app.openapi(devicesRoute, controllers.devices);
 
   app.use("/auth/ws-ticket", requireAuth(container.accessTokens));
+  app.use("/auth/ws-ticket", rateLimit(wsTicketLimiter, "ws-ticket"));
   app.openapi(wsTicketRoute, controllers.wsTicket);
 }
