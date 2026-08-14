@@ -11,11 +11,17 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
  * containers, only the transport is real. Same `serve({websocket:
  * {server: wss}})` wiring as production's index.ts.
  */
+/** Mirrors index.ts's production limit so oversized-frame tests exercise the same bound. */
+export const WS_TEST_MAX_PAYLOAD_BYTES = 64 * 1024;
+
 export function startWsTestServer(
   app: OpenAPIHono,
 ): Promise<{ server: ServerType; wss: WebSocketServer; port: number }> {
   return new Promise((resolve) => {
-    const wss = new WebSocketServer({ noServer: true });
+    const wss = new WebSocketServer({
+      noServer: true,
+      maxPayload: WS_TEST_MAX_PAYLOAD_BYTES,
+    });
     const server = serve(
       { fetch: app.fetch, port: 0, websocket: { server: wss } },
       (info: AddressInfo) => {

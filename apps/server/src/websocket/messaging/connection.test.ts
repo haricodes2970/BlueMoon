@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
 import { createApp } from "../../app.js";
 import { hashWsTicket } from "../../infrastructure/identity/ws-ticket.js";
@@ -26,6 +26,7 @@ async function setup() {
     LOG_LEVEL: "silent",
     JWT_ACCESS_TOKEN_SECRET: TEST_SECRET,
     WEB_ORIGIN: "http://localhost:3000",
+    COOKIE_SAME_SITE: "Lax",
   };
   const app = createApp(env, {
     identityContainer: identity.container,
@@ -191,6 +192,13 @@ describe("Messaging WebSocket transport", () => {
     return connect(wsUrl(handle.port, ticket));
   }
 
+  function connectWithOrigin(ticket: string, origin: string): WebSocket {
+    const ws = new WebSocket(wsUrl(handle.port, ticket), { origin });
+    ws.on("error", () => {});
+    sockets.push(ws);
+    return ws;
+  }
+
   // Resolves once the handshake settles either way -- used for the
   // concurrent-use test, where both branches (open vs. rejected) are
   // expected outcomes, not a pass/fail signal by themselves.
@@ -223,6 +231,21 @@ describe("Messaging WebSocket transport", () => {
     const ws = connect(legacyAccessTokenWsUrl(handle.port, a.accessToken));
     const { statusCode } = await waitForRejection(ws);
     expect(statusCode).toBe(401);
+  });
+
+  it("rejects a handshake whose Origin header doesn't match WEB_ORIGIN", async () => {
+    const a = await registerUser(handle.app, "wsbadorigin");
+    const ticket = await getTicket(handle.app, a.accessToken);
+    const ws = connectWithOrigin(ticket, "https://evil.example");
+    const { statusCode } = await waitForRejection(ws);
+    expect(statusCode).toBe(401);
+  });
+
+  it("accepts a handshake whose Origin header matches WEB_ORIGIN", async () => {
+    const a = await registerUser(handle.app, "wsgoodorigin");
+    const ticket = await getTicket(handle.app, a.accessToken);
+    const ws = connectWithOrigin(ticket, "http://localhost:3000");
+    await expect(waitForOpen(ws)).resolves.toBeUndefined();
   });
 
   it("rejects an expired ticket", async () => {
@@ -380,6 +403,81 @@ describe("Messaging WebSocket transport", () => {
     // goes through the domain rule instead, confirming both layers agree.
     const event = await received;
     expect(event.type).toBe("error");
+  });
+
+  it("replies with an error event and stays open on a malformed (non-JSON) frame", async () => {
+    const a = await registerUser(handle.app, "wsmalformed");
+    const ticketA = await getTicket(handle.app, a.accessToken);
+    const wsA = connectWithTicket(ticketA);
+    await waitForOpen(wsA);
+
+    const received = waitForMessage(wsA);
+    wsA.send("this is not json");
+    const event = await received;
+    expect(event.type).toBe("error");
+
+    // Connection must still be usable afterward -- a malformed frame
+    // is a client mistake, not a reason to drop the socket.
+    expect(wsA.readyState).toBe(WebSocket.OPEN);
+  });
+
+  it("terminates a connection sending a frame over the configured max payload", async () => {
+    const a = await registerUser(handle.app, "wsoversized");
+    const ticketA = await getTicket(handle.app, a.accessToken);
+    const wsA = connectWithTicket(ticketA);
+    await waitForOpen(wsA);
+
+    const closed = new Promise<{ code: number }>((resolve) => {
+      wsA.once("close", (code) => resolve({ code }));
+    });
+    // WS_TEST_MAX_PAYLOAD_BYTES is 64KB (ws-test-server.ts) -- well
+    // over that forces the server to reject the frame per RFC 6455
+    // (close code 1009, Message Too Big) instead of buffering it.
+    wsA.send("x".repeat(80 * 1024));
+    const { code } = await closed;
+    expect(code).toBe(1009);
+  });
+
+  it("rate limits send_message volume per connection", async () => {
+    const a = await registerUser(handle.app, "wsflood");
+    const b = await registerUser(handle.app, "wsfloodtarget");
+    await befriend(handle.app, a, b, "wsflood");
+    const conversationId = await createConversation(handle.app, a, b.userId);
+
+    const ticketA = await getTicket(handle.app, a.accessToken);
+    const wsA = connectWithTicket(ticketA);
+    await waitForOpen(wsA);
+
+    // The broadcaster echoes every sent message back to the sender
+    // too (multi-device sync), so a bare "wait for the next message"
+    // would race against those echoes -- collect every event instead
+    // and look for the rate-limit error among them.
+    const events: Record<string, unknown>[] = [];
+    wsA.on("message", (data) => {
+      events.push(JSON.parse(data.toString()) as Record<string, unknown>);
+    });
+
+    // The WS send_message limiter (app.ts) allows 20 per 10s window --
+    // send one more than that.
+    for (let i = 0; i < 21; i++) {
+      wsA.send(
+        JSON.stringify({
+          type: "send_message",
+          conversationId,
+          content: `msg ${i}`,
+        }),
+      );
+    }
+
+    await vi.waitFor(() => {
+      expect(
+        events.some(
+          (e) =>
+            e.type === "error" &&
+            /too many/i.test((e.data as { message: string }).message),
+        ),
+      ).toBe(true);
+    });
   });
 
   it("syncs a sender's own other connections (multi-device)", async () => {
