@@ -42,12 +42,36 @@ Implemented as of Milestone 0.7 (`apps/server/src/infrastructure/identity/cookie
   (`{ success: true, data: { accessToken, ... } }`). Client is expected
   to hold it in memory (not `localStorage`, to reduce XSS exposure) and
   attach it as `Authorization: Bearer <token>` on subsequent requests.
-- **Refresh token**: set as an `httpOnly`, `SameSite=Lax` cookie
-  (`bm_refresh`), `Secure` outside `development`, scoped to `/auth` --
-  never exposed to client-side JavaScript. `POST /auth/refresh` reads it
-  from the cookie, not a request body. The application-layer services
+- **Refresh token**: set as an `httpOnly` cookie (`bm_refresh`),
+  `Secure` outside `development`, scoped to `/auth` -- never exposed to
+  client-side JavaScript. `POST /auth/refresh` reads it from the
+  cookie, not a request body. The application-layer services
   themselves remain transport-agnostic (they take/return the raw token
   string); cookie-setting is entirely a controller-layer concern.
+- **SameSite** is `COOKIE_SAME_SITE` (env.ts, default `"Lax"`), not
+  hardcoded. `Lax` is correct when `apps/web` and `apps/server` share a
+  registrable domain (e.g. `app.example.com` / `api.example.com`);
+  browsers never attach a `Lax` cookie to a cross-site `fetch()`, so a
+  deployment across two unrelated domains (default Vercel/Railway
+  domains) needs `"None"` instead. `"None"` is only accepted when
+  `NODE_ENV=production` (env.ts fails fast otherwise, since a
+  `SameSite=None` cookie must also be `Secure`). See
+  [ADR-0031](../adr/ADR-0031-deployment-architecture.md) and
+  [`docs/deployment/README.md`](../deployment/README.md).
+- CORS (`app.ts`) sets `credentials: true` alongside `origin:
+WEB_ORIGIN` -- required for the browser to store/send this cookie on
+  a cross-origin request at all; without it, `Set-Cookie` on a
+  cross-origin response is silently ignored regardless of `SameSite`.
+  `apps/web`'s fetch wrapper (`lib/api-client.ts`) sends
+  `credentials: "include"` on every request to match.
+- `apps/web` didn't call `POST /auth/refresh` at all before the
+  2026-08-13 production-hardening pass -- an access token expiring
+  (15 minutes) had no recovery path short of logging in again. The
+  fetch wrapper now retries a 401 exactly once via a coalesced silent
+  refresh (concurrent 401s share one in-flight refresh call, not one
+  each), updating the client-side access token in place. If the
+  refresh cookie itself is gone/expired/revoked, the original 401 is
+  surfaced and client auth state is cleared.
 
 Verified via the Vitest integration suite
 (`routes/identity/auth.routes.test.ts`): cookie set on register/login/

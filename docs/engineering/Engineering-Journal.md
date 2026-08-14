@@ -28,6 +28,75 @@ Next
 
 ## 2026-08-13
 
+Milestone 1.0 — Post-1.0 Production Hardening & Deployment Readiness
+
+Completed
+
+- Audited the deployment-relevant surface (env validation, CORS,
+  cookies, WebSocket server, rate limiter, migrations) against the
+  actual intended target (Vercel + Railway + PostgreSQL, ADR-0012/
+  ADR-0013) and found several gaps that would break or weaken the
+  system once actually deployed, not hypothetical ones
+- Messaging rate limiting: conversation creation (20/hour/IP), WS
+  ticket issuance (30/minute/IP), `send_message` volume (20/10s/user)
+  — reused the existing in-memory limiter rather than a second system
+- WebSocket production hardening: Origin validation before ticket
+  auth, `maxPayload` (64KB, oversized frame -> close 1009), a
+  ping/pong heartbeat sweep (dead connections terminated, presence
+  cleaned up), graceful shutdown on SIGTERM/SIGINT
+- `COOKIE_SAME_SITE` made configurable (default `Lax`, `None` gated to
+  production) -- the platforms' default domains (`*.vercel.app`,
+  `*.up.railway.app`) aren't same-site, so a hardcoded `Lax` cookie
+  would never survive that exact deployment shape
+- CORS `credentials: true` + `apps/web` `credentials: "include"` --
+  found the refresh cookie had never actually worked cross-origin,
+  even in local dev, because nothing enabled credentialed requests and
+  `apps/web` never called `POST /auth/refresh` at all; wired a
+  coalesced silent-refresh-on-401 into `lib/api-client.ts`
+- `env.ts` fail-fast production checks (`DATABASE_URL`, non-default
+  `WEB_ORIGIN` required); `getClientIp` fixed to trust the _last_
+  `x-forwarded-for` entry instead of the first (client-spoofable) --
+  previously any caller could defeat every per-IP rate limiter
+- ADR-0031; `docs/deployment/README.md` rewritten from an empty stub
+- Full quality gate green: build/lint/type-check/format:check clean,
+  `pnpm test` 81/81, `pnpm test:db` 64/64 (real PostgreSQL via
+  docker-compose)
+
+Decisions
+
+- Kept the rate limiter and presence registry in-memory/single-process
+  -- task brief explicitly said not to introduce Redis unless the
+  deployment architecture genuinely required it, and a single Railway
+  instance doesn't
+- Treated wiring `apps/web` to the already-existing, already-tested
+  `POST /auth/refresh` as a production-correctness fix, not a new
+  feature -- no new UI, no new backend surface, and the alternative
+  (no refresh path) makes a deployed session stop working after 15
+  minutes
+
+Problems
+
+- `DECISIONS.md` and `docs/security/Authentication.md` Edit calls
+  initially failed with an exact-text mismatch despite the target text
+  looking identical on inspection -- resolved both times by re-reading
+  the file immediately before retrying rather than trusting memory of
+  its content
+- `env.ts`'s first draft of the `COOKIE_SAME_SITE=None` production
+  guard had the check placed after an early return that made it
+  impossible to ever pass -- self-caught before commit
+
+Next
+
+- Domain-layer unit tests (Username/Credential/session-lifetime/
+  lockout-policy/BlueMoon-Token-lifetime/MessageContent)
+- Automated dependency-rule enforcement
+- Real PINChat V1 (session/PIN model) and real E2EE design -- both
+  remain open, tracked in ADR-0027/ADR-0029
+
+---
+
+## 2026-08-13
+
 Milestone 1.0 — Security Hardening (WebSocket Authentication)
 
 Completed

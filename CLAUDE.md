@@ -78,9 +78,16 @@ silently dropped one. A minimal Next.js frontend (login/register,
 friend list → start conversation, conversation view with history,
 composer, sending state, presence indicator) was built and the full
 golden path verified live in a real browser against a real server and
-a real PostgreSQL instance. `pnpm test` stays database-free at 53/53
-(34 Identity/Social + 10 Messaging HTTP + 9 Messaging WebSocket);
-`pnpm test:db` at 59/59. See [Phase-1.0.md](./docs/phases/Phase-1.0.md),
+a real PostgreSQL instance. A post-1.0 production-hardening pass
+(2026-08-13) added Messaging rate limiting, WebSocket heartbeat/origin
+validation/graceful shutdown, configurable cookie `SameSite`,
+credentialed CORS, and a `POST /auth/refresh`-calling frontend (see
+[ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md),
+[docs/deployment/README.md](./docs/deployment/README.md)) — no
+Dockerfile/Railway/Vercel config exists yet, so this is code hardening
+and documentation, not a verified deployment. `pnpm test` stays
+database-free at 81/81; `pnpm test:db` at 64/64. See
+[Phase-1.0.md](./docs/phases/Phase-1.0.md),
 [Messaging.md](./docs/security/Messaging.md), and
 [ADR-0028](./docs/adr/ADR-0028-messaging-websocket-architecture.md)
 (WebSocket transport design).
@@ -368,6 +375,46 @@ change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
       `Phase-1.0.md`, this file, `DECISIONS.md`, `CHANGELOG.md`,
       Engineering Journal
 
+**Milestone 1.0 — Post-1.0 Production Hardening & Deployment Readiness**
+
+- [x] Messaging rate limiting: `POST /messaging/conversations`
+      (20/hour/IP), `POST /auth/ws-ticket` (30/minute/IP), `send_message`
+      WS event (20/10s/user) — reuses the existing in-memory limiter,
+      same single-process limitation as Identity's
+- [x] WebSocket production hardening: `middleware/validate-ws-origin.ts`
+      (rejects a mismatched `Origin` before ticket auth even runs),
+      `WebSocketServer({ maxPayload: 64 * 1024 })` (oversized frame →
+      close code 1009), `infrastructure/messaging/heartbeat.ts`
+      (ping/pong liveness sweep every 30s, terminates connections that
+      missed the previous ping), graceful shutdown on `SIGTERM`/`SIGINT`
+      (closes every open WS with code 1001, drains the HTTP server)
+- [x] Cookie/CORS hardening: `COOKIE_SAME_SITE` env var (default
+      `"Lax"`, `"None"` gated to `NODE_ENV=production`); CORS
+      `credentials: true` + `apps/web` `credentials: "include"` (the
+      refresh cookie was never actually deliverable cross-origin
+      before this, undetected because `apps/web` had never called
+      `POST /auth/refresh` at all — now wired via a coalesced
+      silent-refresh-on-401 in `lib/api-client.ts`)
+- [x] `env.ts` fail-fast production `superRefine`: requires
+      `DATABASE_URL` and a non-default `WEB_ORIGIN` in production;
+      `getClientIp` now trusts the _last_ `x-forwarded-for` entry
+      (proxy-set), not the first (client-spoofable) — closes a
+      per-IP-rate-limiter bypass
+- [x] ADR-0031 (deployment architecture); `docs/deployment/README.md`
+      rewritten from an empty stub (env vars, two supported domain
+      shapes, migrations, WS requirements, CORS, health checks,
+      rollback, known single-process limitations)
+- [x] New tests: `app.test.ts` (CORS), `env.test.ts` (production
+      fail-fast), `client-ip.test.ts`, `heartbeat.test.ts`, plus
+      WS-origin/oversized-frame/rate-limit coverage in
+      `connection.test.ts` and rate-limit tests in
+      `conversations.routes.test.ts`/`auth.routes.test.ts`
+- [x] Full quality gate green; `pnpm test` 81/81, `pnpm test:db` 64/64
+- [x] Docs updated: `Messaging.md`, `Session-Management.md`,
+      `Authentication.md`, `docs/deployment/README.md`, this file,
+      `ROADMAP.md`, `TODO.md`, `CHANGELOG.md`, `DECISIONS.md`
+      (ADR-0031 indexed)
+
 ## Engineering Principles
 
 - Optimize for maintainability, scalability, readability, security, and
@@ -535,8 +582,14 @@ Limitations for what each of the last two means in practice).
   (`infrastructure/messaging/`) are in-memory and single-process,
   same documented limitation as the Identity rate limiter — must move
   to a shared store before horizontal scaling.
-- No rate limiting on Messaging (conversation creation, message send)
-  — see [Messaging.md](./docs/security/Messaging.md#rate-limiting).
+- Messaging rate limiting, WebSocket heartbeat, and cookie/CORS
+  hardening were added in the 2026-08-13 production-hardening pass —
+  see [Messaging.md](./docs/security/Messaging.md#rate-limiting) and
+  [ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md). No
+  Dockerfile, `railway.json`/`railway.toml`, or `vercel.json` exists
+  yet — [docs/deployment/README.md](./docs/deployment/README.md)
+  describes what the code requires, not a verified deployment against
+  a real Vercel/Railway account.
 - Messaging's domain layer (`MessageContent`, `canonicalizePair`,
   etc.) has no direct unit tests — covered indirectly through
   HTTP/repository/WebSocket tests, same pre-existing gap as Identity's

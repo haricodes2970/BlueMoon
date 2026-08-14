@@ -122,22 +122,71 @@ delivery is a convenience on top of it, never a replacement for it.
 
 ## Rate Limiting
 
-Not currently applied to Messaging endpoints or the WebSocket
-connection itself. Message-send volume is bounded only by the client;
-this is a known, currently-unaddressed gap, tracked as a follow-up
-rather than silently assumed to be covered by Identity's existing
-per-IP limiters (which do not apply here).
+Implemented as of the 2026-08-13 production-hardening pass, using the
+same in-memory limiter Identity already uses
+(`infrastructure/identity/rate-limiter.ts`, same documented
+single-process limitation):
+
+| Action                                      | Limit                      |
+| ------------------------------------------- | -------------------------- |
+| `POST /messaging/conversations` (creation)  | 20 per hour per IP         |
+| `POST /auth/ws-ticket` (WS connection gate) | 30 per minute per IP       |
+| `send_message` WS event                     | 20 per 10 seconds per user |
+
+Conversation creation is limited like Social's BlueMoon Token
+generation; listing/history reads are not (same reasoning as Social's
+list endpoint — an authenticated read isn't a guessing- or
+resource-creation-relevant action). There is no dedicated
+`POST /messaging/messages` endpoint to rate limit directly — instead,
+`send_message` volume is capped per-connection inside the WS handler
+itself (`websocket/messaging/connection.ts`), keyed by `userId` so a
+sender with multiple open tabs/devices shares one quota. WS connection
+_attempts_ are bounded indirectly: every connection requires a fresh
+ticket, and ticket issuance is itself rate limited.
+
+## WebSocket Production Hardening
+
+Also added in the 2026-08-13 pass (`middleware/validate-ws-origin.ts`,
+`index.ts`), all defense-in-depth on top of ticket authentication, not
+replacements for it:
+
+- **Origin validation**: a `/messaging/ws` handshake whose `Origin`
+  header is present but doesn't match `WEB_ORIGIN` is rejected before
+  the ticket is even checked. A non-browser client (tests, native
+  apps) sends no `Origin` header and is unaffected.
+- **Max payload**: the underlying `WebSocketServer` is constructed
+  with `maxPayload: 64 * 1024` (64KB) — generous relative to
+  `MESSAGE_CONTENT_MAX_LENGTH` (4000 chars) plus JSON envelope
+  overhead, but bounded rather than left at `ws`'s 100MiB default.
+  An oversized frame closes the connection with code 1009 (RFC 6455
+  "Message Too Big") rather than being buffered.
+- **Heartbeat**: every open connection is pinged every 30 seconds
+  (`infrastructure/messaging/heartbeat.ts`); a connection that didn't
+  answer the _previous_ ping is terminated. Without this, a silently
+  dropped connection (network loss with no close frame — common on
+  mobile/flaky networks) would never fire the WS handler's `onClose`
+  and would linger in `PresenceRegistry` showing a disconnected user
+  as still online.
+- **Graceful shutdown**: `SIGTERM`/`SIGINT` (sent by Railway before
+  killing a process on every redeploy) close every open connection
+  with code 1001 and drain the HTTP server before exiting, instead of
+  dropping in-flight connections and requests with no notice.
 
 ## Presence
 
 Online/offline only, computed at request time from whether a user has
 at least one open WebSocket connection
 (`infrastructure/messaging/presence-registry.ts`). No last-seen
-timestamp, no heartbeat protocol, no read receipts, no typing
-indicators — deliberately minimal, matching the task's explicit scope
-and this codebase's privacy-by-default principle
+timestamp, no read receipts, no typing indicators — deliberately
+minimal, matching the task's explicit scope and this codebase's
+privacy-by-default principle
 ([Architecture-Overview.md](../architecture/Architecture-Overview.md))
-of not retaining metadata beyond what a feature actually requires.
+of not retaining metadata beyond what a feature actually requires. The
+heartbeat described above (WebSocket Production Hardening) keeps this
+accurate under a silently-dropped connection, but presence is still
+single-process/in-memory — see
+[ADR-0028](../adr/ADR-0028-messaging-websocket-architecture.md)'s
+Future Implications.
 
 ## Audit
 

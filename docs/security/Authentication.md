@@ -156,17 +156,32 @@ Implemented in `apps/server/src/domain/identity/rules/lockout-policy.ts`:
 
 Implemented in `apps/server/src/infrastructure/identity/rate-limiter.ts`
 — a fixed-window, in-memory limiter, wrapped as Hono middleware in
-`middleware/identity/rate-limit.ts`. Wired to two endpoints as of
-Milestone 0.7:
+`middleware/identity/rate-limit.ts`. Wired endpoints:
 
-| Action                | Limit                                                                                  |
-| --------------------- | -------------------------------------------------------------------------------------- |
-| `POST /auth/register` | 5 per hour per IP                                                                      |
-| `POST /auth/login`    | 10 per 15 minutes per IP (on top of the per-account [Lockout Policy](#lockout-policy)) |
+| Action                 | Limit                                                                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/register`  | 5 per hour per IP                                                                                                                 |
+| `POST /auth/login`     | 10 per 15 minutes per IP (on top of the per-account [Lockout Policy](#lockout-policy))                                            |
+| `POST /auth/ws-ticket` | 30 per minute per IP (bounds how fast a caller can mint WS connection tickets — see [Messaging.md](./Messaging.md#rate-limiting)) |
 
 No username-availability-lookup endpoint exists yet (not part of the
 9 routes built in Milestone 0.7) — rate limiting it is deferred until
 one does.
+
+**IP extraction** (`infrastructure/identity/client-ip.ts`): trusts the
+_last_ entry in `x-forwarded-for`, on the assumption of exactly one
+trusted reverse proxy in front of this process (Railway's edge — see
+[ADR-0031](../adr/ADR-0031-deployment-architecture.md)). Each hop a
+request passes through appends its own view of the client IP to the
+header, so the entry closest to this server is the one the trusted
+proxy itself set; every earlier entry is client-supplied and
+spoofable. An earlier version of this function took the _first_
+entry, which let any caller defeat every per-IP rate limiter in this
+codebase simply by sending a different `x-forwarded-for` value per
+request — fixed as part of the 2026-08-13 production-hardening pass,
+before this codebase was ever deployed behind a real proxy. If a
+second proxy hop is introduced in front of Railway's edge (e.g. a
+CDN), this single-hop assumption needs revisiting.
 
 **Known limitation** (documented at the source): the rate limiter is
 single-process and not distributed. A multi-instance deployment

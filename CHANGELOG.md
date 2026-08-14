@@ -215,6 +215,25 @@ repositories,routes,controllers,validation,websocket}/messaging`),
   conversation view (message history, composer, sending state,
   presence indicator). One additional hand-added shadcn/ui primitive
   (`Input`), same convention as the existing `Button`.
+- **Post-1.0 production-hardening pass (2026-08-13):** Messaging rate
+  limiting (`POST /messaging/conversations` 20/hour/IP, `POST
+/auth/ws-ticket` 30/minute/IP, `send_message` WS event 20/10s/user),
+  reusing the existing in-memory limiter; `middleware/validate-ws-
+origin.ts` (rejects a `/messaging/ws` handshake whose `Origin` header
+  doesn't match `WEB_ORIGIN`); `infrastructure/messaging/heartbeat.ts`
+  (`sweepConnections`, ping/pong liveness sweep every 30s, terminates
+  connections that missed the previous ping); graceful shutdown
+  (`SIGTERM`/`SIGINT` close every open WS with code 1001 and drain the
+  HTTP server); `WebSocketServer({ maxPayload: 64 * 1024 })`; new env
+  var `COOKIE_SAME_SITE` (default `"Lax"`, `"None"` gated to
+  production); `middleware/only-for-method.ts` (extracted, shared
+  between `routes/social` and `routes/messaging`); ADR-0031
+  (deployment architecture); `docs/deployment/README.md` rewritten
+  from an empty stub. New tests: `app.test.ts` (CORS), `env.test.ts`
+  (production fail-fast), `client-ip.test.ts`,
+  `heartbeat.test.ts`, plus WS-origin/oversized-frame/rate-limit
+  coverage in `connection.test.ts` and a rate-limit test in
+  `conversations.routes.test.ts` and `auth.routes.test.ts`.
 
 ### Changed
 
@@ -328,6 +347,26 @@ WsTicketRepository)`; `apps/server/src/app.ts`'s `/messaging/ws`
   reference, `docs/phases/Phase-1.0.md`, `DECISIONS.md` (ADR-0030
   indexed), and the Engineering Journal updated for this hardening
   pass.
+- `app.ts`'s CORS middleware now sets `credentials: true`; `apps/web`'s
+  `lib/api-client.ts` sends `credentials: "include"` on every request
+  — without both, `Set-Cookie` on a cross-origin response is silently
+  ignored by the browser regardless of `SameSite`, which had been true
+  even in local dev (`localhost:3000` → `localhost:8787`) without
+  anyone noticing since only the (cookie-independent) access token had
+  been exercised through a browser before.
+- `apps/web` now calls `POST /auth/refresh`: `lib/api-client.ts`'s
+  `request()` wrapper retries a 401 exactly once via a coalesced
+  silent refresh (concurrent 401s share one in-flight call); on
+  refresh failure the original 401 is surfaced and auth state is
+  cleared. `store/auth-store.ts` gained a `setAccessToken` action.
+  Previously `apps/web` never called this already-existing,
+  already-tested endpoint — a 15-minute access-token TTL had no
+  recovery path short of logging in again.
+- `env.ts`'s `serverEnvSchema` gained a `superRefine`: production
+  requires `DATABASE_URL` and a non-default `WEB_ORIGIN`, and
+  `COOKIE_SAME_SITE=None` requires `NODE_ENV=production` — fails fast
+  at startup instead of starting in a silently-broken or
+  silently-degraded state.
 
 ### Fixed
 
@@ -397,3 +436,10 @@ test:db`, which bypasses Turbo and had masked the gap.
   flag (set via `persist`'s `onRehydrateStorage`) gating the redirect
   decision. Found and fixed during Milestone 1.0's live browser
   verification.
+- `infrastructure/identity/client-ip.ts`'s `getClientIp` trusted the
+  _first_ `x-forwarded-for` entry, which is client-supplied and
+  spoofable — any caller could defeat every per-IP rate limiter in
+  this codebase by sending a different value per request. Now trusts
+  the _last_ entry (the one the trusted reverse proxy, Railway's edge,
+  actually appended). Assumes exactly one trusted proxy hop; see
+  ADR-0031.

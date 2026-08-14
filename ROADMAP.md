@@ -361,7 +361,14 @@ implementation can start — see
 [ADR-0027](./docs/adr/ADR-0027-messaging-friendship-gate-deviation.md)
 Future Implications — plus a real end-to-end encryption design (see
 [ADR-0029](./docs/adr/ADR-0029-message-encryption-deferred.md) Future
-Implications). Other remaining engineering gaps: domain-layer unit
-tests (pure `Username`/`Credential`/session-lifetime/lockout-policy/
-BlueMoon-Token-lifetime/`MessageContent` tests), automated
-dependency-rule enforcement, rate limiting on Messaging.
+Implications). A post-1.0 production-hardening pass (2026-08-13) added
+Messaging rate limiting, WebSocket heartbeat/origin-validation/
+graceful shutdown, configurable cookie `SameSite`, credentialed CORS,
+and deployment documentation (see
+[ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md),
+[docs/deployment/README.md](./docs/deployment/README.md)) — no
+Dockerfile/Railway/Vercel config exists yet, so this is documentation
+and code hardening, not a verified deployment. Other remaining
+engineering gaps: domain-layer unit tests (pure `Username`/
+`Credential`/session-lifetime/lockout-policy/BlueMoon-Token-lifetime/
+`MessageContent` tests), automated dependency-rule enforcement.

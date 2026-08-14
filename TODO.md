@@ -35,8 +35,9 @@ and remove it on the next pass rather than letting completed items pile up.
       tests) — see [Phase-0.8.md](./docs/phases/Phase-0.8.md),
       [Phase-0.9.md](./docs/phases/Phase-0.9.md),
       [Phase-1.0.md](./docs/phases/Phase-1.0.md)
-- [ ] Add rate limiting to Messaging (conversation creation, message
-      send) — see
+- [x] Add rate limiting to Messaging (conversation creation, WS ticket
+      issuance, `send_message` volume) — done in the 2026-08-13
+      production-hardening pass; see
       [Messaging.md](./docs/security/Messaging.md#rate-limiting)
 - [ ] Add automated dependency-rule enforcement — `eslint-plugin-boundaries`
       or equivalent in `tooling/eslint-config`, configured against
@@ -54,7 +55,12 @@ and remove it on the next pass rather than letting completed items pile up.
 - [ ] Resolve open question: separate store for ephemeral session data
       vs. PostgreSQL (see ADR-0005 Future Implications)
 - [ ] Final license decision (currently a proprietary placeholder)
-- [ ] Deploy pipelines to Railway and Vercel (deliberately deferred)
+- [ ] Deploy pipelines to Railway and Vercel (deliberately deferred) —
+      deployment _documentation_ and env-config validation now exist
+      ([docs/deployment/README.md](./docs/deployment/README.md),
+      [ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md)); no
+      Dockerfile/Railway/Vercel config file exists yet, and nothing
+      has been verified against a real account
 
 ## Later
 
