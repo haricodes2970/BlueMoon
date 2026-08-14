@@ -31,6 +31,7 @@ describe.skipIf(!hasTestDatabase())("Social HTTP API (real Postgres)", () => {
       LOG_LEVEL: "silent",
       JWT_ACCESS_TOKEN_SECRET: TEST_SECRET,
       WEB_ORIGIN: "http://localhost:3000",
+      COOKIE_SAME_SITE: "Lax",
     };
     const app = createApp(env, { identityContainer, socialContainer });
     return { app };

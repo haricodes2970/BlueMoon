@@ -14,6 +14,7 @@ function setup() {
     LOG_LEVEL: "silent",
     JWT_ACCESS_TOKEN_SECRET: TEST_SECRET,
     WEB_ORIGIN: "http://localhost:3000",
+    COOKIE_SAME_SITE: "Lax",
   };
   const app = createApp(env, { identityContainer: container });
   return { app, auditEvents, loginAttempts };
@@ -380,6 +381,45 @@ describe("POST /auth/logout", () => {
   });
 });
 
+describe("POST /auth/ws-ticket", () => {
+  it("issues a ticket for an authenticated caller", async () => {
+    const { app } = setup();
+    const { body } = await registerUser(app);
+
+    const res = await app.request("/auth/ws-ticket", {
+      method: "POST",
+      headers: { authorization: `Bearer ${body.data.accessToken}` },
+    });
+
+    expect(res.status).toBe(201);
+    const ticketBody = (await res.json()) as {
+      data: { ticket: string; expiresAt: string };
+    };
+    expect(ticketBody.data.ticket.length).toBeGreaterThan(0);
+  });
+
+  it("rejects an unauthenticated caller", async () => {
+    const { app } = setup();
+    const res = await app.request("/auth/ws-ticket", { method: "POST" });
+    expect(res.status).toBe(401);
+  });
+
+  it("is rate limited after 30 attempts from the same IP within the window", async () => {
+    const { app } = setup();
+    const { body } = await registerUser(app);
+
+    let last: Response | undefined;
+    for (let i = 0; i < 31; i++) {
+      last = await app.request("/auth/ws-ticket", {
+        method: "POST",
+        headers: { authorization: `Bearer ${body.data.accessToken}` },
+      });
+    }
+
+    expect(last?.status).toBe(429);
+  });
+});
+
 describe("GET /openapi.json", () => {
   it("documents every /auth route", async () => {
     const { app } = setup();
@@ -397,6 +437,7 @@ describe("GET /openapi.json", () => {
         "/auth/trust-device/{id}",
         "/auth/me",
         "/auth/devices",
+        "/auth/ws-ticket",
       ]),
     );
   });

@@ -20,6 +20,7 @@ function setup() {
     LOG_LEVEL: "silent",
     JWT_ACCESS_TOKEN_SECRET: TEST_SECRET,
     WEB_ORIGIN: "http://localhost:3000",
+    COOKIE_SAME_SITE: "Lax",
   };
   const app = createApp(env, {
     identityContainer: identity.container,
@@ -190,6 +191,27 @@ describe("POST /messaging/conversations", () => {
     const bodyA = (await resA.json()) as { data: { id: string } };
     const bodyB = (await resB.json()) as { data: { id: string } };
     expect(bodyA.data.id).toBe(bodyB.data.id);
+  });
+
+  it("is rate limited after 20 attempts from the same IP within the window", async () => {
+    const { app } = setup();
+    const a = await registerUser(app, "wsratelimita");
+    const b = await registerUser(app, "wsratelimitb");
+    await befriend(app, a, { ...b, username: "wsratelimitb" }, "wsratelimita");
+
+    let last: Response | undefined;
+    for (let i = 0; i < 21; i++) {
+      last = await app.request("/messaging/conversations", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${a.accessToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ otherUserId: b.userId }),
+      });
+    }
+
+    expect(last?.status).toBe(429);
   });
 });
 

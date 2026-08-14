@@ -1,9 +1,9 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import type { MiddlewareHandler } from "hono";
 import { createSocialControllers } from "../../controllers/social/friendships.controller.js";
 import type { SocialContainer } from "../../social-container.js";
 import { requireAuth } from "../../middleware/identity/require-auth.js";
 import { rateLimit } from "../../middleware/identity/rate-limit.js";
+import { onlyForMethod } from "../../middleware/only-for-method.js";
 import { createRateLimiter } from "../../infrastructure/identity/rate-limiter.js";
 import type { AccessTokenService } from "../../infrastructure/identity/access-token.js";
 import {
@@ -30,24 +30,6 @@ export interface RegisterSocialRoutesOptions {
  * consumption is capped like login (the closest analog to
  * "guessing a secret").
  */
-/**
- * `/social/friendships` serves both POST (consume -- guessing-
- * relevant, must be rate limited) and GET (list -- a normal
- * authenticated read). `app.use(path, mw)` in Hono matches every
- * method on that path, so the rate limiter is wrapped to only run for
- * POST -- otherwise every `GET /social/friendships` call would
- * consume a shared quota meant for token-consumption attempts.
- */
-function onlyForMethod(
-  method: string,
-  middleware: MiddlewareHandler,
-): MiddlewareHandler {
-  return async (c, next) => {
-    if (c.req.method !== method) return next();
-    return middleware(c, next);
-  };
-}
-
 export function registerSocialRoutes(
   app: OpenAPIHono,
   options: RegisterSocialRoutesOptions,

@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import type { WSEvents } from "hono/ws";
 import { isAppError } from "@bluemoon/utils";
 import type { MessagingContainer } from "../../messaging-container.js";
+import type { RateLimiter } from "../../infrastructure/identity/rate-limiter.js";
 import { sendMessageEventSchema } from "../../validation/messaging/send-message.schema.js";
 
 /**
@@ -17,6 +18,7 @@ import { sendMessageEventSchema } from "../../validation/messaging/send-message.
  */
 export function createMessagingConnectionHandlers(
   container: MessagingContainer,
+  sendMessageLimiter?: RateLimiter,
 ) {
   return (c: Context): WSEvents => {
     const auth = c.get("auth");
@@ -46,6 +48,23 @@ export function createMessagingConnectionHandlers(
             JSON.stringify({
               type: "error",
               data: { message: "Invalid send_message payload" },
+            }),
+          );
+          return;
+        }
+
+        // Keyed per-user (not per-socket): a sender with multiple open
+        // tabs/devices shares one quota, same as every other Identity
+        // rate limiter in this codebase keys by the identity behind
+        // the request, not the specific connection.
+        if (
+          sendMessageLimiter &&
+          !sendMessageLimiter.consume(auth.userId).allowed
+        ) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              data: { message: "Too many messages -- slow down" },
             }),
           );
           return;
