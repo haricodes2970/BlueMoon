@@ -1,16 +1,25 @@
 import type { Context } from "hono";
 
 /**
- * Best-effort client IP extraction. Trusts `x-forwarded-for` (first
- * entry) since no reverse proxy/load balancer is configured yet in
- * this environment -- revisit once one is (a proxy-set header should
- * be the only trusted source, not anything a client can set itself).
+ * Best-effort client IP extraction for rate limiting, assuming
+ * exactly one trusted reverse proxy in front of this process
+ * (Railway's edge -- see docs/deployment/README.md). Each hop a
+ * request passes through *appends* its own view of the client IP to
+ * `x-forwarded-for`, so the entry closest to this server (the last
+ * one) is the one the trusted proxy itself set; every earlier entry
+ * is client-supplied and trivially spoofable. Taking the *first*
+ * entry, as an earlier version of this function did, let any caller
+ * defeat every per-IP rate limiter in this codebase simply by sending
+ * a different `x-forwarded-for` value per request. If a second proxy
+ * hop is ever introduced in front of Railway's edge (e.g. a CDN),
+ * this single-hop assumption needs revisiting.
  */
 export function getClientIp(c: Context): string {
   const forwardedFor = c.req.header("x-forwarded-for");
   if (forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim();
-    if (first) return first;
+    const parts = forwardedFor.split(",");
+    const last = parts[parts.length - 1]?.trim();
+    if (last) return last;
   }
   return "unknown";
 }
