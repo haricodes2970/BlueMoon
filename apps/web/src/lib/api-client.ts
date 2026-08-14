@@ -1,3 +1,5 @@
+import { useAuthStore } from "@/store/auth-store";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
 
 export class ApiError extends Error {
@@ -10,13 +12,17 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(
+async function rawRequest<T>(
   path: string,
   options: RequestInit & { accessToken?: string } = {},
 ): Promise<T> {
   const { accessToken, headers, ...rest } = options;
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
+    // Required for the browser to send/store the bm_refresh cookie
+    // across apps/web and apps/server's separate origins -- without
+    // it, Set-Cookie on a cross-origin response is silently ignored.
+    credentials: "include",
     headers: {
       "content-type": "application/json",
       ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
@@ -36,6 +42,64 @@ async function request<T>(
     );
   }
   return body!.data as T;
+}
+
+let refreshInFlight: Promise<string> | null = null;
+
+/**
+ * Exchanges the httpOnly bm_refresh cookie for a new access token.
+ * Concurrent 401s coalesce into one in-flight refresh instead of one
+ * per failed call.
+ */
+function refreshAccessToken(): Promise<string> {
+  if (!refreshInFlight) {
+    refreshInFlight = rawRequest<{ accessToken: string }>("/auth/refresh", {
+      method: "POST",
+    })
+      .then(({ accessToken }) => {
+        useAuthStore.getState().setAccessToken(accessToken);
+        return accessToken;
+      })
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
+/**
+ * Silent-refresh-on-401 wrapper around rawRequest: an authenticated
+ * call that fails with 401 (expired access token, 15-minute TTL --
+ * see domain/identity/rules/session-lifetime.ts) triggers exactly one
+ * refresh attempt and retries once with the new token. Login/register/
+ * refresh itself are excluded -- retrying those would either loop or
+ * make no sense (there is no token to refresh yet).
+ */
+async function request<T>(
+  path: string,
+  options: RequestInit & { accessToken?: string } = {},
+): Promise<T> {
+  try {
+    return await rawRequest<T>(path, options);
+  } catch (error) {
+    const canRetry =
+      error instanceof ApiError &&
+      error.status === 401 &&
+      options.accessToken &&
+      path !== "/auth/refresh";
+    if (!canRetry) throw error;
+
+    try {
+      const accessToken = await refreshAccessToken();
+      return await rawRequest<T>(path, { ...options, accessToken });
+    } catch {
+      // The refresh cookie itself is gone/expired/revoked -- there is
+      // no path back to an authenticated state short of logging in
+      // again. Surface the *original* 401, not the refresh failure.
+      useAuthStore.getState().clear();
+      throw error;
+    }
+  }
 }
 
 export interface AuthedUser {

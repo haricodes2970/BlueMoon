@@ -16,18 +16,22 @@ export interface AuthState {
     userId: string;
     username: string;
   }) => void;
+  /** Updates only the access token -- used by api-client's silent
+   * refresh-on-401 flow, which never has (and never needs) userId/
+   * username again. */
+  setAccessToken: (accessToken: string) => void;
   clear: () => void;
   setHasHydrated: () => void;
 }
 
 /**
- * Access-token-only client state (localStorage-persisted) -- no
- * refresh-token handling here yet. The refresh token itself never
- * reaches JS: apps/server sets it as an httpOnly cookie (see
- * docs/security/Session-Management.md), out of reach of this store by
- * design. A dropped access token simply requires logging in again;
- * silent refresh is a follow-up, not required for this milestone's
- * vertical slice.
+ * Access-token-only client state (localStorage-persisted). The
+ * refresh token itself never reaches JS: apps/server sets it as an
+ * httpOnly cookie (see docs/security/Session-Management.md), out of
+ * reach of this store by design. api-client.ts silently exchanges
+ * that cookie for a new access token on a 401 and calls
+ * setAccessToken here -- a dropped access token only requires logging
+ * in again if the refresh cookie itself is gone/expired/revoked.
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -38,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
       hasHydrated: false,
       setAuth: ({ accessToken, userId, username }) =>
         set({ accessToken, userId, username }),
+      setAccessToken: (accessToken) => set({ accessToken }),
       clear: () => set({ accessToken: null, userId: null, username: null }),
       setHasHydrated: () => set({ hasHydrated: true }),
     }),
