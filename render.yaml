@@ -28,8 +28,8 @@ services:
   - type: web
     name: bluemoon-server
     runtime: docker
-    dockerfilePath: apps/server/Dockerfile
-    dockerContext: .
+    dockerfilePath: ./apps/server/Dockerfile
+    dockerContext: ./
     plan: free
     region: oregon
     healthCheckPath: /health
