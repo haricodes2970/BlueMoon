@@ -54,6 +54,39 @@ E2EE) remains entirely unimplemented and unscheduled.
 
 ## Current Milestone
 
+**Milestone 1.0 — Deployment Readiness & Production Verification** (repository readiness complete; external deployment unverified)
+
+`apps/server` is now genuinely deployable: a production `Dockerfile`
+(three-stage, `apps/server/Dockerfile`), `.dockerignore`, and
+`railway.json` (`build.builder: "DOCKERFILE"`) exist — see
+[ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md) for why
+Docker was chosen over Railway's zero-config Nixpacks builder for this
+pnpm/Turborepo workspace shape. `apps/web` needs no `vercel.json` —
+Vercel's native Next.js monorepo support handles it via a Root
+Directory setting alone. Verified locally (2026-08-15): `docker build`
+succeeds; the built image starts against a real disposable PostgreSQL
+instance with production-shaped environment variables (`NODE_ENV=production`,
+a non-default `WEB_ORIGIN`, etc.) and passes `/health`; a full golden
+path (register both users → CORS allowed/rejected-origin check →
+BlueMoon Token → Friendship → WS tickets for both users → old
+`?access_token=` scheme confirmed rejected → both connect over
+`/messaging/ws?ticket=...` → conversation created → message sent by
+one user persists and is received by the other over the live
+WebSocket → retrievable via HTTP history → `POST /auth/refresh` via
+the `bm_refresh` cookie → logout) passed end-to-end against the
+running container. Found and fixed a real bug during this
+verification: `registerHealthRoute` was opening a brand-new
+`postgres.js` connection pool on every single `/health` call and never
+closing it — a platform health checker polling every few seconds would
+have exhausted `max_connections` over time; fixed to reuse `app.ts`'s
+one shared pool. `pnpm test` unchanged at 81/81 database-free;
+`pnpm test:db` at 67/67 against real PostgreSQL (3 new tests in
+`app.integration.test.ts` covering health ok/degraded/repeated-poll
+behavior). **No actual Vercel or Railway deployment has
+been performed** — see [docs/deployment/README.md](./docs/deployment/README.md)'s
+Milestone 1.1 Completion Criteria for the exact repository-ready vs.
+externally-verified distinction.
+
 **Milestone 1.0 — 1:1 Messaging Vertical Slice (Interim, Friendship-Gated)** (complete)
 
 Persistent 1:1 conversations and text messages
@@ -415,6 +448,50 @@ change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
       `ROADMAP.md`, `TODO.md`, `CHANGELOG.md`, `DECISIONS.md`
       (ADR-0031 indexed)
 
+**Milestone 1.0 — Deployment Readiness & Production Verification**
+
+- [x] `apps/server/Dockerfile` (three-stage: filtered install + Turbo
+      build, `--prod`-only install, minimal `node:20-alpine` runtime
+      copying only `dist/` + production `node_modules`), root
+      `.dockerignore`, `railway.json` (`build.builder: "DOCKERFILE"`,
+      health check wired to `/health`)
+- [x] No `vercel.json` added — deliberately, Vercel's native Next.js
+      monorepo support needs no custom config for this repository
+      shape (Root Directory = `apps/web` alone)
+- [x] Found and fixed a real connection-pool leak:
+      `registerHealthRoute` opened a brand-new `postgres.js` pool on
+      every `/health` call instead of reusing `app.ts`'s one shared
+      pool — surfaced by actually running the Docker image, not by
+      static inspection
+- [x] `docker build` verified locally; the built image started
+      against a real disposable PostgreSQL instance with
+      production-shaped environment variables, passed `/health`, and
+      served a full golden path end-to-end (register both users → CORS
+      allowed/rejected origin → BlueMoon Token → Friendship → WS
+      tickets for both → old `?access_token=` scheme confirmed
+      rejected → both connect over `/messaging/ws?ticket=...` →
+      conversation created → message sent by one user persisted and
+      received by the other over the live WebSocket → retrievable via
+      HTTP history → `POST /auth/refresh` via cookie → logout)
+- [x] New tests: `app.integration.test.ts` (3, real Postgres — health
+      ok/degraded/repeated-poll-reuses-one-pool)
+- [x] Production environment contract documented
+      (`docs/deployment/README.md`, dev/test/production per variable,
+      secret vs. non-secret, where configured); `.env.example` files
+      updated (`NODE_ENV` made explicit)
+- [x] ADR-0032 (Docker chosen over Nixpacks for this pnpm/Turborepo
+      workspace shape); `docs/deployment/README.md` gained a Docker
+      Build section and explicit Milestone 1.1 Completion Criteria
+      (repository-ready vs. externally-verified)
+- [x] Full quality gate green; `pnpm test` unchanged at 81/81,
+      `pnpm test:db` at 67/67
+- [x] **No actual Vercel or Railway deployment performed** — see
+      Milestone 1.1 Completion Criteria in
+      `docs/deployment/README.md` for exactly what remains unverified
+- [x] Docs updated: `docs/deployment/README.md`, ADR-0032, this file,
+      `ROADMAP.md`, `TODO.md`, `CHANGELOG.md`, `DECISIONS.md`
+      (ADR-0032 indexed), Engineering Journal
+
 ## Engineering Principles
 
 - Optimize for maintainability, scalability, readability, security, and
@@ -585,11 +662,15 @@ Limitations for what each of the last two means in practice).
 - Messaging rate limiting, WebSocket heartbeat, and cookie/CORS
   hardening were added in the 2026-08-13 production-hardening pass —
   see [Messaging.md](./docs/security/Messaging.md#rate-limiting) and
-  [ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md). No
-  Dockerfile, `railway.json`/`railway.toml`, or `vercel.json` exists
-  yet — [docs/deployment/README.md](./docs/deployment/README.md)
-  describes what the code requires, not a verified deployment against
-  a real Vercel/Railway account.
+  [ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md).
+  `apps/server/Dockerfile` and `railway.json` now exist and have been
+  verified with a real local `docker build`/`docker run` against a
+  disposable PostgreSQL instance (Milestone 1.1,
+  [ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md)) —
+  **no actual Vercel or Railway deployment has been performed**;
+  [docs/deployment/README.md](./docs/deployment/README.md)'s
+  Milestone 1.1 Completion Criteria section is the authoritative
+  record of what is and isn't verified.
 - Messaging's domain layer (`MessageContent`, `canonicalizePair`,
   etc.) has no direct unit tests — covered indirectly through
   HTTP/repository/WebSocket tests, same pre-existing gap as Identity's

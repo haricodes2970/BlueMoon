@@ -234,6 +234,15 @@ origin.ts` (rejects a `/messaging/ws` handshake whose `Origin` header
   `heartbeat.test.ts`, plus WS-origin/oversized-frame/rate-limit
   coverage in `connection.test.ts` and a rate-limit test in
   `conversations.routes.test.ts` and `auth.routes.test.ts`.
+- **Deployment readiness pass (2026-08-15):** `apps/server/Dockerfile`
+  (three-stage: filtered install + Turbo build, `--prod`-only install,
+  minimal `node:20-alpine` runtime), root `.dockerignore`,
+  `railway.json` (`build.builder: "DOCKERFILE"`, health check wired to
+  `/health`). ADR-0032 (Docker chosen over Nixpacks for this
+  pnpm/Turborepo workspace). Production environment contract
+  documented (`docs/deployment/README.md`, dev/test/production per
+  variable). `app.integration.test.ts` (3 tests, real Postgres — health
+  ok/degraded/repeated-poll-reuses-one-pool).
 
 ### Changed
 
@@ -443,3 +452,11 @@ test:db`, which bypasses Turbo and had masked the gap.
   the _last_ entry (the one the trusted reverse proxy, Railway's edge,
   actually appended). Assumes exactly one trusted proxy hop; see
   ADR-0031.
+- `registerHealthRoute` opened a brand-new `postgres.js` connection
+  pool on every single `GET /health` call and never closed it, instead
+  of reusing the one shared pool `app.ts` already builds for
+  Identity/Social/Messaging — a platform health checker polling every
+  few seconds would eventually exhaust `max_connections`. Found by
+  actually running the production Docker image against a real
+  database rather than by static inspection. Now takes the shared
+  pool (or `null`) as a parameter.

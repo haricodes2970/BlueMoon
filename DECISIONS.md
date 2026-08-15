@@ -41,6 +41,7 @@ the point.
 | [0029](./docs/adr/ADR-0029-message-encryption-deferred.md)         | End-to-End Encryption Deferred — Plaintext Storage, Transport Security Only              | Accepted                                        |
 | [0030](./docs/adr/ADR-0030-websocket-ticket-authentication.md)     | Short-Lived, Single-Use Ticket for WebSocket Authentication                              | Accepted                                        |
 | [0031](./docs/adr/ADR-0031-deployment-architecture.md)             | Deployment Architecture — Cross-Origin Cookies, Proxy Trust, Production Fail-Fast Config | Accepted                                        |
+| [0032](./docs/adr/ADR-0032-server-docker-deployment.md)            | Docker as the Railway Build Mechanism for apps/server                                    | Accepted                                        |
 
 ## Adding a New ADR
 

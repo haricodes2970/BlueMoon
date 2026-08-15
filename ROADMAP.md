@@ -303,6 +303,25 @@ criteria (see Milestone 1.1) — that scope was deliberately deferred,
 not attempted. See [Phase-1.0.md](./docs/phases/Phase-1.0.md) for the
 full writeup.
 
+**Sub-pass: Deployment Readiness & Production Verification (2026-08-15)**
+
+- [x] `apps/server/Dockerfile`, `.dockerignore`, `railway.json` — see
+      [ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md)
+- [x] Fixed a real connection-pool leak in `GET /health` (opened a new
+      pool per call instead of reusing the shared one)
+- [x] `docker build`/`docker run` verified locally against a real
+      disposable PostgreSQL instance; full golden path (register →
+      friendship → WS tickets → WS connect → message send/receive →
+      history → refresh → logout) passed end-to-end against the
+      running container
+- [x] Production environment contract documented
+      (`docs/deployment/README.md`)
+- [x] `pnpm test` 81/81, `pnpm test:db` 67/67
+- [x] **No actual Vercel or Railway deployment performed** — see
+      [docs/deployment/README.md](./docs/deployment/README.md)'s
+      Milestone 1.0 Completion Criteria section for the exact
+      repository-ready-vs-externally-verified distinction
+
 ## Milestone 1.1 — PINChat V1 (Session/PIN, End-to-End Encryption)
 
 **Status: Blocked** (depends on 0.2, 0.4, and a not-yet-started
@@ -365,10 +384,17 @@ Implications). A post-1.0 production-hardening pass (2026-08-13) added
 Messaging rate limiting, WebSocket heartbeat/origin-validation/
 graceful shutdown, configurable cookie `SameSite`, credentialed CORS,
 and deployment documentation (see
-[ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md),
-[docs/deployment/README.md](./docs/deployment/README.md)) — no
-Dockerfile/Railway/Vercel config exists yet, so this is documentation
-and code hardening, not a verified deployment. Other remaining
-engineering gaps: domain-layer unit tests (pure `Username`/
-`Credential`/session-lifetime/lockout-policy/BlueMoon-Token-lifetime/
-`MessageContent` tests), automated dependency-rule enforcement.
+[ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md)). A
+follow-on deployment-readiness pass (2026-08-15) added
+`apps/server/Dockerfile`/`.dockerignore`/`railway.json` (see
+[ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md)), fixed a
+real `/health` connection-pool leak found while verifying it, and
+verified a full golden path against the built Docker image running
+locally with production-shaped config against a real (disposable)
+PostgreSQL instance — repository-side deployment readiness is done;
+**no actual Vercel or Railway deployment has been performed** (see
+[docs/deployment/README.md](./docs/deployment/README.md)'s Milestone
+1.0 Completion Criteria). Other remaining engineering gaps:
+domain-layer unit tests (pure `Username`/`Credential`/session-
+lifetime/lockout-policy/BlueMoon-Token-lifetime/`MessageContent`
+tests), automated dependency-rule enforcement.

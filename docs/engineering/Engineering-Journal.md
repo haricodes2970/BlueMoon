@@ -26,6 +26,106 @@ Next
 
 ---
 
+## 2026-08-15
+
+Milestone 1.0 — Deployment Readiness & Production Verification
+
+Completed
+
+- Inspected the full deployment surface (env.ts, app.ts, index.ts,
+  routes, WebSocket setup, packages/database, root/apps package.jsons,
+  pnpm-workspace.yaml, turbo.json, existing ADR-0031/deployment docs)
+  before writing any deployment config, per the task's Phase 1
+- `apps/server/Dockerfile`: three-stage build (filtered
+  `pnpm install --filter=@bluemoon/server...` + Turbo build,
+  `--prod`-only install, minimal `node:20-alpine` runtime copying only
+  built `dist/` + production `node_modules`) -- deliberately never
+  touches `apps/web`'s Next.js dependency tree. Root `.dockerignore`.
+  `railway.json` pointing Railway at the Dockerfile, health check
+  wired to `/health`. No `vercel.json` -- Vercel's native Next.js
+  monorepo support needs no custom config for this repository shape
+- Root package.json's husky `prepare` script fails in the `--prod`
+  install stage (devDependency not installed there, no `.git` in the
+  build context) -- fixed by stripping the `prepare` script from the
+  in-container package.json copy before install, rather than skipping
+  all lifecycle scripts (argon2's postinstall must still compile its
+  native addon)
+- Verified for real, not just claimed: `docker build` succeeds from a
+  clean checkout; the built image starts against a real disposable
+  PostgreSQL instance with production-shaped environment variables
+  (`NODE_ENV=production`, non-default `WEB_ORIGIN`, etc.), correctly
+  fails fast on a default `WEB_ORIGIN`, and passes `/health`
+- Found and fixed a real bug while doing that verification:
+  `registerHealthRoute` opened a brand-new `postgres.js` connection
+  pool on every `/health` call and never closed it, instead of reusing
+  `app.ts`'s one shared pool -- a platform health checker polling
+  every few seconds would exhaust `max_connections` over time. Added
+  `app.integration.test.ts` (3 tests, real Postgres) covering
+  ok/degraded/repeated-poll behavior
+- Ran a full golden path against the running container with a Node
+  script (not the Vitest suite): register both users -> CORS
+  allowed/rejected origin -> BlueMoon Token -> Friendship -> WS
+  tickets for both -> old `?access_token=` scheme confirmed rejected
+  -> both connect over `/messaging/ws?ticket=...` -> conversation
+  created -> message sent by one user persists and is received by the
+  other over the live WebSocket -> retrievable via HTTP history ->
+  `POST /auth/refresh` via the `bm_refresh` cookie -> logout. All
+  passed
+- Production environment contract documented in
+  `docs/deployment/README.md` (dev/test/production per variable,
+  secret vs. non-secret, where configured)
+- ADR-0032 (Docker over Nixpacks for this pnpm/Turborepo shape)
+- Full quality gate green: build/lint/type-check/format:check clean,
+  `pnpm test` unchanged at 81/81, `pnpm test:db` at 67/67 (real
+  PostgreSQL)
+
+Decisions
+
+- Renumbering conflict caught before it shipped: the task brief called
+  this "Milestone 1.1", but ROADMAP.md already reserves 1.1 for the
+  canonical PINChat V1 (session/PIN, E2EE) -- kept this work under
+  "Milestone 1.0" (as a sub-pass), matching the convention already
+  established by the prior two Milestone 1.0 sub-passes (WS ticket
+  hardening, production hardening), rather than silently colliding
+  two different things under the same number
+- Docker over a custom `nixpacks.toml`: rejected hand-encoding the
+  same filtered-install-then-build sequence in Nixpacks' plan format
+  when a Dockerfile expresses it more legibly and can be built/run
+  locally for verification before ever touching Railway
+- `pnpm deploy` considered, not used: its file-selection behavior
+  around a gitignored `dist/` directory was uncertain enough without
+  being able to verify it beforehand that the fully-visible,
+  locally-verified multi-stage Dockerfile was the safer choice
+
+Problems
+
+- An early Docker build attempt failed with `EAI_AGAIN
+registry.npmjs.org` mid-`pnpm install` -- transient sandbox network
+  loss during a full unfiltered workspace install (which was also
+  pulling in `apps/web`'s entire Next.js/sharp dependency tree
+  unnecessarily). Fixed the underlying design issue (filtered install,
+  never touching apps/web) rather than just retrying, which
+  incidentally also fixed the flakiness by cutting the network surface
+- Registered users with a 22-character username templated as
+  `alicetest${Date.now()}` -- exceeded the 20-character Username
+  limit, silently producing a validation 400 in the golden-path
+  script. Fixed by truncating the timestamp suffix
+- The Milestone 0.7 registration rate limiter (5/hour/IP) was hit
+  partway through repeated golden-path script runs against the same
+  long-lived container -- expected behavior, not a bug; restarted the
+  container between runs to reset the in-memory limiter
+
+Next
+
+- Perform an actual Vercel deployment and an actual Railway deployment
+  (Docker build + managed PostgreSQL) -- repository-side readiness is
+  done, external verification is not; see docs/deployment/README.md's
+  Milestone 1.0 Completion Criteria
+- Real PINChat V1 (session/PIN model) and real E2EE design remain
+  open, unaffected by this pass
+
+---
+
 ## 2026-08-13
 
 Milestone 1.0 — Post-1.0 Production Hardening & Deployment Readiness
