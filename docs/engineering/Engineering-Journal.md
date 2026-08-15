@@ -26,6 +26,80 @@ Next
 
 ---
 
+## 2026-08-16
+
+Milestone 1.0 — Platform Change: Railway → Render
+
+Completed
+
+- Inspected the repository against the new Render target before
+  changing anything: CLAUDE.md, ROADMAP.md, TODO.md, CHANGELOG.md,
+  DECISIONS.md, ADR-0031, ADR-0032, docs/deployment/README.md,
+  Dockerfile, railway.json, .dockerignore, package.jsons,
+  pnpm-workspace.yaml, turbo.json, env.ts, index.ts, app.ts, migration
+  config, health check, WebSocket implementation
+- Confirmed via Render's own documentation (not guessed) that nothing
+  about apps/server's runtime needed to change: it already binds to
+  all interfaces (Node's default when no hostname is passed to
+  server.listen()), already reads PORT from the environment, already
+  handles SIGTERM gracefully, /health already needs no auth, and
+  Render's WebSocket support is native on the same domain/port as
+  HTTP -- every one of these was independently required by Railway
+  too, so none of it turned out to be Railway-specific application
+  behavior
+- Removed railway.json; added render.yaml (Blueprint: web service +
+  PostgreSQL in one file). Evaluated the Blueprint approach first per
+  the task's instruction rather than adding it by default -- justified
+  by fromDatabase's automatic internal-connection-string wiring and
+  generateValue's automatic JWT secret generation, both confirmed
+  against Render's documentation, neither achievable via a plain
+  Dockerfile alone
+- Updated code comments naming "Railway's edge" as the trusted
+  single reverse-proxy hop to "Render's edge"
+  (infrastructure/identity/client-ip.ts + its test, env.ts, index.ts)
+  -- the assumption and the code implementing it are unchanged, only
+  which platform's edge it refers to
+- Rewrote docs/deployment/README.md Railway -> Render throughout
+- ADR-0033 (new, supersedes ADR-0012). ADR-0012 marked Superseded;
+  ADR-0031 and ADR-0032 gained short status-line amendment notes,
+  neither rewritten -- their reasoning (proxy trust, cross-origin
+  cookies, Docker over a buildpack) is unaffected by which platform
+  the Dockerfile deploys to
+- Full quality gate green: build/lint/type-check/format:check clean,
+  pnpm test unchanged at 81/81, pnpm test:db unchanged at 67/67 --
+  confirming zero functional/runtime code changed. Re-verified
+  docker build/docker run against the same unmodified Dockerfile
+
+Decisions
+
+- render.yaml over dashboard-only configuration: the internal-
+  database-URL auto-wiring and having the service topology as a
+  reviewable, version-controlled file outweigh the minor extra file
+- Amend, don't rewrite, ADR-0012/0031/0032: matches this repository's
+  established convention (see ADR-0028's amendment when its auth
+  sub-decision was superseded by ADR-0030) -- a historical ADR records
+  what was decided and why at the time, a new ADR records what changed
+  and why, neither is silently edited into the other
+
+Problems
+
+- None blocking. No functional/runtime code needed to change at all --
+  every requirement Render imposes (bind-all interfaces, honor PORT,
+  graceful SIGTERM, unauthenticated /health, native WebSocket support)
+  was already satisfied because Railway imposed the identical
+  requirements
+
+Next
+
+- Perform the actual Render deployment (apply render.yaml as a
+  Blueprint, run migrations manually against the resulting database,
+  set WEB_ORIGIN once Vercel exists) and the actual Vercel deployment
+  -- external verification remains the only remaining gap, unchanged
+  in kind from before this platform switch, just against a different
+  platform
+
+---
+
 ## 2026-08-15
 
 Milestone 1.0 — Deployment Readiness & Production Verification

@@ -322,6 +322,27 @@ full writeup.
       Milestone 1.0 Completion Criteria section for the exact
       repository-ready-vs-externally-verified distinction
 
+**Sub-pass: Platform change — Railway → Render (2026-08-16)**
+
+- [x] Platform decision changed before any external deployment
+      happened — [ADR-0033](./docs/adr/ADR-0033-adopt-render-for-backend-hosting.md)
+      supersedes [ADR-0012](./docs/adr/ADR-0012-railway.md); ADR-0031
+      and ADR-0032 amended in place (not rewritten) since their
+      reasoning and the Dockerfile itself are unaffected
+- [x] `railway.json` removed; `render.yaml` Blueprint added (web
+      service + PostgreSQL, internal `DATABASE_URL` auto-wired via
+      `fromDatabase`, `JWT_ACCESS_TOKEN_SECRET` auto-generated via
+      `generateValue: true`)
+- [x] `docs/deployment/README.md` rewritten Railway → Render
+      throughout; code comments referencing "Railway's edge" as the
+      trusted proxy hop updated to "Render's edge" (`client-ip.ts`,
+      `env.ts`, `index.ts`) — no functional/runtime code changed
+- [x] `pnpm test` unchanged at 81/81, `pnpm test:db` unchanged at
+      67/67; `docker build`/`docker run` re-verified against the same
+      unmodified Dockerfile
+- [x] **No actual Render or Vercel deployment performed** — this pass
+      is repository preparation only, same distinction as above
+
 ## Milestone 1.1 — PINChat V1 (Session/PIN, End-to-End Encryption)
 
 **Status: Blocked** (depends on 0.2, 0.4, and a not-yet-started
@@ -386,13 +407,18 @@ graceful shutdown, configurable cookie `SameSite`, credentialed CORS,
 and deployment documentation (see
 [ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md)). A
 follow-on deployment-readiness pass (2026-08-15) added
-`apps/server/Dockerfile`/`.dockerignore`/`railway.json` (see
-[ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md)), fixed a
-real `/health` connection-pool leak found while verifying it, and
-verified a full golden path against the built Docker image running
-locally with production-shaped config against a real (disposable)
-PostgreSQL instance — repository-side deployment readiness is done;
-**no actual Vercel or Railway deployment has been performed** (see
+`apps/server/Dockerfile`/`.dockerignore` and a platform build config
+(see [ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md)),
+fixed a real `/health` connection-pool leak found while verifying it,
+and verified a full golden path against the built Docker image
+running locally with production-shaped config against a real
+(disposable) PostgreSQL instance. The platform target then changed
+from Railway to Render (2026-08-16, see
+[ADR-0033](./docs/adr/ADR-0033-adopt-render-for-backend-hosting.md))
+before any external deployment happened — `railway.json` replaced with
+a `render.yaml` Blueprint, no functional code changed. Repository-side
+deployment readiness is done; **no actual Vercel or Render deployment
+has been performed** (see
 [docs/deployment/README.md](./docs/deployment/README.md)'s Milestone
 1.0 Completion Criteria). Other remaining engineering gaps:
 domain-layer unit tests (pure `Username`/`Credential`/session-

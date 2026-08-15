@@ -1,7 +1,7 @@
 # ADR-0031: Deployment Architecture — Cross-Origin Cookies, Proxy Trust, and Production Fail-Fast Config
 
 - **Date:** 2026-08-13
-- **Status:** Accepted
+- **Status:** Accepted (platform target changed from Railway to Render by [ADR-0033](./ADR-0033-adopt-render-for-backend-hosting.md), 2026-08-16 — every decision below is unaffected: the "exactly one trusted reverse proxy hop" assumption, the cross-origin cookie/CORS reasoning, and the fail-fast config all hold identically for Render's edge)
 
 ## Context
 

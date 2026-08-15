@@ -1,7 +1,7 @@
 # ADR-0032: Docker as the Railway Build Mechanism for apps/server
 
 - **Date:** 2026-08-15
-- **Status:** Accepted
+- **Status:** Accepted (platform target changed from Railway to Render by [ADR-0033](./ADR-0033-adopt-render-for-backend-hosting.md), 2026-08-16 — the Docker build mechanism itself, and every reason given below for choosing Docker over a zero-config buildpack, is unaffected: Render builds and runs an arbitrary Dockerfile exactly as Railway does, so the same three-stage `apps/server/Dockerfile` is reused unmodified)
 
 ## Context
 

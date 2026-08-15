@@ -1,7 +1,7 @@
 # ADR-0012: Railway for Backend/Database Hosting
 
 - **Date:** 2026-07-22
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0033](./ADR-0033-adopt-render-for-backend-hosting.md) (2026-08-16) — the platform decision changed from Railway to Render before an external deployment was ever performed; this record is left unchanged below as an accurate account of what was decided in July 2026 and why.
 
 ## Context
 

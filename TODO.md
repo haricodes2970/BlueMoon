@@ -56,15 +56,16 @@ and remove it on the next pass rather than letting completed items pile up.
       vs. PostgreSQL (see ADR-0005 Future Implications)
 - [ ] Final license decision (currently a proprietary placeholder)
 - [ ] Perform an actual Vercel deployment (`apps/web`) and an actual
-      Railway deployment (`apps/server`, Docker build, + managed
-      PostgreSQL) — repository-side readiness is done: `Dockerfile`,
-      `.dockerignore`, `railway.json`, production environment contract
+      Render deployment (`apps/server`, Docker build via `render.yaml`, + Render PostgreSQL) — repository-side readiness is done:
+      `Dockerfile`, `.dockerignore`, `render.yaml`, production
+      environment contract
       ([docs/deployment/README.md](./docs/deployment/README.md),
       [ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md),
-      [ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md)),
+      [ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md),
+      [ADR-0033](./docs/adr/ADR-0033-adopt-render-for-backend-hosting.md)),
       verified locally via a real `docker build`/`docker run` against
       a disposable PostgreSQL instance and a full golden path — but no
-      external Vercel/Railway account has been touched
+      external Vercel/Render account has been touched
 
 ## Later
 

@@ -243,6 +243,21 @@ origin.ts` (rejects a `/messaging/ws` handshake whose `Origin` header
   documented (`docs/deployment/README.md`, dev/test/production per
   variable). `app.integration.test.ts` (3 tests, real Postgres — health
   ok/degraded/repeated-poll-reuses-one-pool).
+- **Render platform preparation (2026-08-16):** `render.yaml` Blueprint
+  at the repository root — defines `apps/server` as a Docker web
+  service plus a Render PostgreSQL database in one file, wiring
+  `DATABASE_URL` to Render's internal connection string automatically
+  (`fromDatabase`) and generating `JWT_ACCESS_TOKEN_SECRET` on first
+  deploy (`generateValue: true`) so no human ever handles the raw
+  value. ADR-0033 (adopting Render, superseding ADR-0012's Railway
+  choice — no functional/runtime code changed by this switch).
+
+### Removed
+
+- `railway.json` — removed as part of the 2026-08-16 platform change
+  to Render (ADR-0033); Render does not read it, and leaving it in the
+  repository would misleadingly suggest Railway is still the
+  deployment target. Replaced by `render.yaml`.
 
 ### Changed
 
@@ -376,6 +391,19 @@ WsTicketRepository)`; `apps/server/src/app.ts`'s `/messaging/ws`
   `COOKIE_SAME_SITE=None` requires `NODE_ENV=production` — fails fast
   at startup instead of starting in a silently-broken or
   silently-degraded state.
+- `docs/deployment/README.md` rewritten Railway → Render throughout
+  (topology, environment variable tables, Docker Build section, health
+  check, rollback, domain-shape examples using `onrender.com` instead
+  of `up.railway.app`). Code comments naming "Railway's edge" as the
+  trusted single reverse-proxy hop updated to "Render's edge"
+  (`infrastructure/identity/client-ip.ts` and its test, `env.ts`,
+  `index.ts`) — no functional/runtime behavior changed, only which
+  platform's edge the existing single-trusted-hop assumption refers
+  to. `apps/server/README.md`'s hosting line updated to Render/ADR-0033.
+  `DECISIONS.md`: ADR-0012's status changed to "Superseded by 0033";
+  ADR-0032's status gained a note that the platform target changed
+  (title and body left as an accurate historical record, not
+  rewritten).
 
 ### Fixed
 

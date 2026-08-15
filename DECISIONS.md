@@ -21,7 +21,7 @@ the point.
 | [0009](./docs/adr/ADR-0009-zustand.md)                             | Zustand for Client State Management                                                      | Accepted                                        |
 | [0010](./docs/adr/ADR-0010-tanstack-query.md)                      | TanStack Query for Server State                                                          | Accepted                                        |
 | [0011](./docs/adr/ADR-0011-cloudflare-r2.md)                       | Cloudflare R2 for Object Storage                                                         | Accepted                                        |
-| [0012](./docs/adr/ADR-0012-railway.md)                             | Railway for Backend/Database Hosting                                                     | Accepted                                        |
+| [0012](./docs/adr/ADR-0012-railway.md)                             | Railway for Backend/Database Hosting                                                     | Superseded by 0033                              |
 | [0013](./docs/adr/ADR-0013-vercel.md)                              | Vercel for Frontend Hosting                                                              | Accepted                                        |
 | [0014](./docs/adr/ADR-0014-typescript.md)                          | TypeScript Across the Stack                                                              | Accepted                                        |
 | [0015](./docs/adr/ADR-0015-turborepo.md)                           | Turborepo for Monorepo Task Orchestration                                                | Accepted                                        |
@@ -41,7 +41,8 @@ the point.
 | [0029](./docs/adr/ADR-0029-message-encryption-deferred.md)         | End-to-End Encryption Deferred — Plaintext Storage, Transport Security Only              | Accepted                                        |
 | [0030](./docs/adr/ADR-0030-websocket-ticket-authentication.md)     | Short-Lived, Single-Use Ticket for WebSocket Authentication                              | Accepted                                        |
 | [0031](./docs/adr/ADR-0031-deployment-architecture.md)             | Deployment Architecture — Cross-Origin Cookies, Proxy Trust, Production Fail-Fast Config | Accepted                                        |
-| [0032](./docs/adr/ADR-0032-server-docker-deployment.md)            | Docker as the Railway Build Mechanism for apps/server                                    | Accepted                                        |
+| [0032](./docs/adr/ADR-0032-server-docker-deployment.md)            | Docker as the Railway Build Mechanism for apps/server                                    | Accepted (platform target changed by 0033)      |
+| [0033](./docs/adr/ADR-0033-adopt-render-for-backend-hosting.md)    | Adopt Render for Production Backend and PostgreSQL Hosting                               | Accepted                                        |
 
 ## Adding a New ADR
 
