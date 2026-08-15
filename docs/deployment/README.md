@@ -50,6 +50,13 @@ cross-origin request. Set `COOKIE_SAME_SITE=None` on `apps/server`.
 This is only accepted when `NODE_ENV=production` (env.ts fails fast
 otherwise, since a `SameSite=None` cookie must also be `Secure`).
 
+**This is the shape actually in use.** `apps/web` is deployed at
+`https://blue-moon-web-zeta.vercel.app` (Vercel's default domain, no
+custom domain configured) and `apps/server` will deploy to Render's
+default `*.onrender.com` domain — `render.yaml` is set accordingly
+(`WEB_ORIGIN=https://blue-moon-web-zeta.vercel.app`,
+`COOKIE_SAME_SITE=None`).
+
 ## `apps/server` (Render) Environment Variables
 
 | Variable                  | Required in production? | Notes                                                                                                                                                                                                                                                 |
@@ -57,8 +64,8 @@ otherwise, since a `SameSite=None` cookie must also be `Secure`).
 | `NODE_ENV`                | Yes (`production`)      | Gates the fail-fast checks below, `Secure` cookies, and pretty-vs-JSON logging. `render.yaml` sets this.                                                                                                                                              |
 | `DATABASE_URL`            | Yes                     | Wired automatically by `render.yaml`'s `fromDatabase: {property: connectionString}` — resolves to Render's **internal** connection string.                                                                                                            |
 | `JWT_ACCESS_TOKEN_SECRET` | Yes                     | 32+ bytes. `render.yaml` uses `generateValue: true` — Render generates and stores this on first deploy; no human ever handles the raw value.                                                                                                          |
-| `WEB_ORIGIN`              | Yes                     | The real deployed `apps/web` origin, e.g. `https://app.example.com`. Must not be the localhost default — env.ts refuses to start otherwise. `render.yaml` marks this `sync: false` (set manually in the Render dashboard once the Vercel URL exists). |
-| `COOKIE_SAME_SITE`        | No (default `Lax`)      | Set to `None` only under the fallback domain shape above.                                                                                                                                                                                             |
+| `WEB_ORIGIN`              | Yes                     | `https://blue-moon-web-zeta.vercel.app` — the real deployed `apps/web` origin. Must not be the localhost default — env.ts refuses to start otherwise. `render.yaml` hardcodes this value (not a secret); update it if the Vercel origin ever changes. |
+| `COOKIE_SAME_SITE`        | No (default `Lax`)      | `render.yaml` sets `None` — `apps/web` and `apps/server` are on different registrable domains (`*.vercel.app` / `*.onrender.com`), the fallback domain shape above.                                                                                   |
 | `PORT`                    | No (default `8787`)     | Render injects its own `PORT`; the app already reads `process.env.PORT` via `loadServerEnv()`. Not set in `render.yaml` — leave it to Render.                                                                                                         |
 | `LOG_LEVEL`               | No (default `info`)     | `debug`/`trace` are verbose; avoid in production under sustained load.                                                                                                                                                                                |
 
@@ -72,16 +79,16 @@ partially-broken state.
 The authoritative variable list for `apps/server`. `.env.example`
 mirrors this table with placeholder values only — never real secrets.
 
-| Variable                  | Dev                               | Test                             | Production                                                     | Secret? | Configured where                                                    |
-| ------------------------- | --------------------------------- | -------------------------------- | -------------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
-| `NODE_ENV`                | `development` (default)           | `test`                           | `production` — required, gates every check below               | No      | `render.yaml` (`value: production`)                                 |
-| `DATABASE_URL`            | optional (routes unmount)         | not used by `pnpm test`          | **required** — fail-fast if missing                            | Yes     | `render.yaml` (`fromDatabase`, resolves to the internal URL)        |
-| `TEST_DATABASE_URL`       | optional                          | required for `pnpm test:db` only | not used                                                       | Yes     | local `.env.local` / CI secret, never production                    |
-| `JWT_ACCESS_TOKEN_SECRET` | any 32+ byte string               | fixture value                    | **required**, 32+ random bytes                                 | Yes     | `render.yaml` (`generateValue: true`)                               |
-| `WEB_ORIGIN`              | `http://localhost:3000` (default) | fixture value                    | **required**, must not be the localhost default                | No      | `render.yaml` (`sync: false` — set manually once Vercel URL exists) |
-| `COOKIE_SAME_SITE`        | `Lax` (default)                   | `Lax`                            | `Lax` (preferred) or `None` (platform-default-domain fallback) | No      | `render.yaml` (`value: Lax`, edit before applying if using `None`)  |
-| `PORT`                    | `8787` (default)                  | n/a                              | Render-injected — do not set manually                          | No      | Render (automatic)                                                  |
-| `LOG_LEVEL`               | `info` (default)                  | `silent` (test setup)            | `info` (default); avoid `debug`/`trace` under load             | No      | `render.yaml` (`value: info`)                                       |
+| Variable                  | Dev                               | Test                             | Production                                                  | Secret? | Configured where                                               |
+| ------------------------- | --------------------------------- | -------------------------------- | ----------------------------------------------------------- | ------- | -------------------------------------------------------------- |
+| `NODE_ENV`                | `development` (default)           | `test`                           | `production` — required, gates every check below            | No      | `render.yaml` (`value: production`)                            |
+| `DATABASE_URL`            | optional (routes unmount)         | not used by `pnpm test`          | **required** — fail-fast if missing                         | Yes     | `render.yaml` (`fromDatabase`, resolves to the internal URL)   |
+| `TEST_DATABASE_URL`       | optional                          | required for `pnpm test:db` only | not used                                                    | Yes     | local `.env.local` / CI secret, never production               |
+| `JWT_ACCESS_TOKEN_SECRET` | any 32+ byte string               | fixture value                    | **required**, 32+ random bytes                              | Yes     | `render.yaml` (`generateValue: true`)                          |
+| `WEB_ORIGIN`              | `http://localhost:3000` (default) | fixture value                    | **required**, must not be the localhost default             | No      | `render.yaml` (`value: https://blue-moon-web-zeta.vercel.app`) |
+| `COOKIE_SAME_SITE`        | `Lax` (default)                   | `Lax`                            | `None` — required, platform-default-domain fallback applies | No      | `render.yaml` (`value: None`)                                  |
+| `PORT`                    | `8787` (default)                  | n/a                              | Render-injected — do not set manually                       | No      | Render (automatic)                                             |
+| `LOG_LEVEL`               | `info` (default)                  | `silent` (test setup)            | `info` (default); avoid `debug`/`trace` under load          | No      | `render.yaml` (`value: info`)                                  |
 
 `apps/web`:
 
@@ -169,6 +176,54 @@ Criteria](#milestone-10-completion-criteria) below). Image size ≈230MB.
 Database migrations are **not** part of this image or its `CMD` — see
 Migrations above; they stay a separate, explicit step regardless of
 how the server itself is deployed.
+
+### Troubleshooting: `COPY packages/... not found` during the Render build
+
+Symptom: the Render build log fails on one of the `builder` stage's
+`COPY` instructions (`apps/server`, `packages/config`,
+`packages/database`, `packages/types`, `packages/utils`,
+`tooling/typescript-config`, `turbo.json`) with `"...": not found`.
+
+Diagnosed 2026-08-16: this is **not** a defect in
+`apps/server/Dockerfile` or `render.yaml`. Confirmed by reproducing
+Render's exact build command from a clean checkout:
+
+```
+docker build --no-cache -f apps/server/Dockerfile .
+```
+
+— this succeeds every time (verified against this exact Dockerfile and
+`render.yaml`, both unchanged in that respect by this troubleshooting
+pass). `render.yaml`'s `dockerContext: .` is a real, documented
+Blueprint field (confirmed against Render's own Blueprint Spec
+documentation) that sets the build context to the repository root
+independently of `dockerfilePath` — exactly what a monorepo Dockerfile
+that `COPY`s root-level workspace files needs.
+
+The failure means the **live Render service is not building from this
+`render.yaml`** — almost always because the service was created
+through Render's "New → Web Service" flow (pointing directly at
+`apps/server/Dockerfile`) before this Blueprint existed, rather than
+through "New → Blueprint". A manually-created Docker service defaults
+its build context to the Dockerfile's own directory
+(`apps/server/`) unless a Blueprint or an explicit dashboard setting
+says otherwise — which reproduces exactly this symptom, since none of
+the repo-root files (`turbo.json`, `packages/*`, `tooling/*`) exist
+under `apps/server/`.
+
+Fix (manual, in the Render dashboard — cannot be done from this
+repository):
+
+1. **Preferred** — delete the manually-created service and recreate it
+   via "New" → "Blueprint", pointing at this repository. Render then
+   reads `render.yaml` directly, including `dockerContext: .`.
+2. **Alternative** — keep the existing service, but in its Settings →
+   Build & Deploy, set "Docker Build Context Directory" to the
+   repository root (blank or `.`) to match `render.yaml` by hand, and
+   keep "Dockerfile Path" as `apps/server/Dockerfile`.
+
+Either way, no code or Blueprint change is required — only the live
+service's configuration needs to match what's already committed.
 
 ## WebSocket Requirements
 
