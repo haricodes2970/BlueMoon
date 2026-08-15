@@ -17,7 +17,7 @@ describe("getClientIp", () => {
 
   it("trusts the last entry (the proxy-appended hop), not the first (client-supplied)", async () => {
     const app = appReturningClientIp();
-    // Railway's edge appends the real client IP as the last hop;
+    // Render's edge appends the real client IP as the last hop;
     // everything before it is whatever the client itself sent and
     // must not be trusted for rate limiting.
     const res = await app.request("/", {

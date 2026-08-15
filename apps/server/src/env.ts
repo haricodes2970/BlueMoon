@@ -19,7 +19,7 @@ export const serverEnvSchema = extendEnvSchema({
    * apps/web and apps/server share a registrable domain (e.g.
    * app.example.com / api.example.com); browsers never attach a Lax
    * cookie to a cross-site fetch(), so a deployment across two
-   * unrelated domains (default Vercel/Railway domains) needs "None"
+   * unrelated domains (default Vercel/Render domains) needs "None"
    * instead -- see docs/deployment/README.md and
    * ADR-0031. Defaults to the stricter "Lax"; "None" must be an
    * explicit operator choice, not a silent default.

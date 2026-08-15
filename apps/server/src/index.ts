@@ -53,7 +53,7 @@ const server = serve(
   },
 );
 
-// Railway (and most PaaS deploys) send SIGTERM before killing the
+// Render (and most PaaS deploys) send SIGTERM before killing the
 // process on every redeploy/restart -- without this, in-flight WS
 // connections are dropped with no close frame and any request mid-
 // flight is simply cut off, instead of a clean 1001 close and a

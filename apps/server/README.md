@@ -7,7 +7,7 @@ friends, users, or authentication logic (that starts Milestone 1.0).
   `@hono/zod-openapi` for OpenAPI schema + doc generation
 - Database: PostgreSQL + Drizzle ([ADR-0005](../../docs/adr/ADR-0005-postgresql.md), [ADR-0006](../../docs/adr/ADR-0006-drizzle.md)), via `@bluemoon/database`
 - Object storage: Cloudflare R2 ([ADR-0011](../../docs/adr/ADR-0011-cloudflare-r2.md)) — not yet wired up
-- Hosting: Railway ([ADR-0012](../../docs/adr/ADR-0012-railway.md))
+- Hosting: Render ([ADR-0033](../../docs/adr/ADR-0033-adopt-render-for-backend-hosting.md); supersedes [ADR-0012](../../docs/adr/ADR-0012-railway.md))
 
 ## What exists
 
