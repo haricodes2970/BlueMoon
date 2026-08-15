@@ -26,6 +26,15 @@
 # Putting the Dockerfile at the root makes the build context correct
 # by construction, independent of whether dockerContext is honored.
 #
+# `rootDir: .` is explicit, not relying on Render's documented "if
+# omitted, defaults to repo root" behavior -- added after moving the
+# Dockerfile still failed, this time with Render unable to find
+# "Dockerfile" at all (not a COPY-target failure), which is the
+# signature of the live service's effective build root not actually
+# being the true repository root regardless of what this file's
+# dockerContext says. See docs/deployment/README.md's Troubleshooting
+# section for the full evidence trail.
+#
 # See docs/deployment/README.md and ADR-0033 for the full procedure
 # and the reasoning behind adopting Render over Railway.
 
@@ -38,6 +47,7 @@ services:
   - type: web
     name: bluemoon-server
     runtime: docker
+    rootDir: .
     dockerfilePath: ./Dockerfile
     dockerContext: ./
     plan: free

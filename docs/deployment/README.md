@@ -321,6 +321,45 @@ which remains outside what this environment can verify — but it
 removes the specific mechanism (`dockerContext` reliability) every
 prior failure was consistent with.
 
+**Update, 2026-08-16 (same day) — moving the Dockerfile changed the
+failure mode, not the outcome.** The next real Render build no longer
+failed on a `COPY` target; it failed one step earlier, unable to open
+`Dockerfile` itself (`failed to read dockerfile: open Dockerfile: no
+such file or directory`) — despite `git ls-tree` on the exact deployed
+commit confirming `Dockerfile` present at the true repository root.
+
+Read together, the two failure modes are the same failure at two
+different points in time:
+
+- **Before the move**: `Dockerfile` still lived at
+  `apps/server/Dockerfile`. Render found and parsed it fine, then
+  failed on every `COPY` reaching outside `apps/server/`.
+- **After the move**: `Dockerfile` lives at the true repository root.
+  Render can no longer find it at all.
+
+Both are exactly what would happen if the live service's actual build
+root has been `apps/server/` all along — before the move, a Dockerfile
+physically sitting there was found (context = `apps/server/`, so its
+sibling-package `COPY`s failed); after the move, nothing sits there
+anymore, so opening `Dockerfile` fails outright. This holds regardless
+of what `render.yaml`'s `dockerContext` says, which is consistent with
+`dockerContext` not actually being applied to this service — i.e. the
+live service has an effective root directory Render is not deriving
+from this file's `dockerContext`/`dockerfilePath` fields the way the
+Blueprint Spec documents.
+
+The one field that hadn't yet been tried explicitly is `rootDir` — the
+Blueprint Spec's own field for declaring a service's root directory,
+which `dockerfilePath`/`dockerContext` become relative to when it's
+set, and which docs claim defaults to repo root when omitted. Since
+omission hasn't reliably produced repo-root behavior in practice,
+`render.yaml` now sets `rootDir: .` explicitly rather than relying on
+the documented default. This is evidence-driven, not confirmed —
+schema-valid, and consistent with every observed failure, but whether
+Render's live service actually honors an explicit `rootDir: .` any
+more reliably than the `dockerContext` it was apparently not honoring
+can only be confirmed by an actual Render deploy.
+
 ## WebSocket Requirements
 
 `/messaging/ws` needs a platform that supports long-lived WebSocket
