@@ -1,28 +1,35 @@
 # Deployment
 
 Production deployment target: **Vercel** for `apps/web`
-([ADR-0013](../adr/ADR-0013-vercel.md)), **Railway** for `apps/server`
-via a Docker build ([ADR-0012](../adr/ADR-0012-railway.md),
-[ADR-0032](../adr/ADR-0032-server-docker-deployment.md)), and Railway
-PostgreSQL (or any compatible managed PostgreSQL). `apps/web` has no
-`vercel.json` — Vercel's native Next.js monorepo support (Root
+([ADR-0013](../adr/ADR-0013-vercel.md)), **Render** for `apps/server`
+via a Docker build and **Render PostgreSQL**
+([ADR-0033](../adr/ADR-0033-adopt-render-for-backend-hosting.md),
+superseding [ADR-0012](../adr/ADR-0012-railway.md)'s original Railway
+choice; the underlying Docker mechanism itself is unchanged, see
+[ADR-0032](../adr/ADR-0032-server-docker-deployment.md)). `apps/web`
+has no `vercel.json` — Vercel's native Next.js monorepo support (Root
 Directory = `apps/web` in project settings) needs no custom
 configuration. `apps/server` has a production `Dockerfile`
-(`apps/server/Dockerfile`) and a `railway.json` pointing Railway at it
-— see [ADR-0032](../adr/ADR-0032-server-docker-deployment.md) for why
-Docker was chosen over Railway's zero-config Nixpacks builder for this
-specific pnpm/Turborepo workspace shape.
+(`apps/server/Dockerfile`, unchanged from the Railway-targeted
+version) and a `render.yaml` Blueprint at the repository root defining
+both the web service and the PostgreSQL database — see
+[ADR-0033](../adr/ADR-0033-adopt-render-for-backend-hosting.md) for
+why a Blueprint was chosen (primarily: it wires `DATABASE_URL` to
+Render's _internal_ connection string automatically, and generates
+`JWT_ACCESS_TOKEN_SECRET` without a human ever handling it).
 
 This document distinguishes two levels of readiness, defined
 precisely in [Milestone 1.0's completion
 criteria](#milestone-10-completion-criteria) below — **repository
-deployment readiness** (verified, see that section) and **external
-deployment verification** (Vercel/Railway/managed PostgreSQL actually
-exercised — not yet performed; see Known Limitations).
+deployment readiness** (verified against Docker + a local PostgreSQL
+instance, see that section) and **external deployment verification**
+(Vercel/Render/Render PostgreSQL actually exercised — not yet
+performed; see Known Limitations).
 
 See [ADR-0031](../adr/ADR-0031-deployment-architecture.md) for the
 reasoning behind the cross-origin/cookie/proxy-trust decisions
-referenced throughout this document.
+referenced throughout this document — unaffected by the Railway→Render
+platform change (see ADR-0033).
 
 ## Two Supported Domain Shapes
 
@@ -31,29 +38,29 @@ behaves differently depending on how `apps/web` and `apps/server` are
 deployed relative to each other. Pick one:
 
 **Preferred: custom subdomains under one apex domain**
-(`app.example.com` for Vercel, `api.example.com` for Railway).
+(`app.example.com` for Vercel, `api.example.com` for Render).
 Browsers treat these as "same-site" (registrable domain matches, only
 the subdomain differs), so `COOKIE_SAME_SITE=Lax` (the default) works
 correctly and needs no further configuration.
 
 **Fallback: the platforms' default domains**
-(`*.vercel.app`, `*.up.railway.app`). These are genuinely different
+(`*.vercel.app`, `*.onrender.com`). These are genuinely different
 registrable domains — a `Lax` cookie would never be sent back on a
 cross-origin request. Set `COOKIE_SAME_SITE=None` on `apps/server`.
 This is only accepted when `NODE_ENV=production` (env.ts fails fast
 otherwise, since a `SameSite=None` cookie must also be `Secure`).
 
-## `apps/server` (Railway) Environment Variables
+## `apps/server` (Render) Environment Variables
 
-| Variable                  | Required in production? | Notes                                                                                                                                       |
-| ------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NODE_ENV`                | Yes (`production`)      | Gates the fail-fast checks below, `Secure` cookies, and pretty-vs-JSON logging.                                                             |
-| `DATABASE_URL`            | Yes                     | Railway's PostgreSQL plugin provides this automatically when attached to the service.                                                       |
-| `JWT_ACCESS_TOKEN_SECRET` | Yes                     | 32+ bytes. Generate with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.                                   |
-| `WEB_ORIGIN`              | Yes                     | The real deployed `apps/web` origin, e.g. `https://app.example.com`. Must not be the localhost default — env.ts refuses to start otherwise. |
-| `COOKIE_SAME_SITE`        | No (default `Lax`)      | Set to `None` only under the fallback domain shape above.                                                                                   |
-| `PORT`                    | No (default `8787`)     | Railway injects its own `PORT`; the app already reads `process.env.PORT` via `loadServerEnv()`.                                             |
-| `LOG_LEVEL`               | No (default `info`)     | `debug`/`trace` are verbose; avoid in production under sustained load.                                                                      |
+| Variable                  | Required in production? | Notes                                                                                                                                                                                                                                                 |
+| ------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                | Yes (`production`)      | Gates the fail-fast checks below, `Secure` cookies, and pretty-vs-JSON logging. `render.yaml` sets this.                                                                                                                                              |
+| `DATABASE_URL`            | Yes                     | Wired automatically by `render.yaml`'s `fromDatabase: {property: connectionString}` — resolves to Render's **internal** connection string.                                                                                                            |
+| `JWT_ACCESS_TOKEN_SECRET` | Yes                     | 32+ bytes. `render.yaml` uses `generateValue: true` — Render generates and stores this on first deploy; no human ever handles the raw value.                                                                                                          |
+| `WEB_ORIGIN`              | Yes                     | The real deployed `apps/web` origin, e.g. `https://app.example.com`. Must not be the localhost default — env.ts refuses to start otherwise. `render.yaml` marks this `sync: false` (set manually in the Render dashboard once the Vercel URL exists). |
+| `COOKIE_SAME_SITE`        | No (default `Lax`)      | Set to `None` only under the fallback domain shape above.                                                                                                                                                                                             |
+| `PORT`                    | No (default `8787`)     | Render injects its own `PORT`; the app already reads `process.env.PORT` via `loadServerEnv()`. Not set in `render.yaml` — leave it to Render.                                                                                                         |
+| `LOG_LEVEL`               | No (default `info`)     | `debug`/`trace` are verbose; avoid in production under sustained load.                                                                                                                                                                                |
 
 `env.ts` validates all of this at startup via a Zod schema and
 `superRefine` — an incomplete or inconsistent production configuration
@@ -65,16 +72,16 @@ partially-broken state.
 The authoritative variable list for `apps/server`. `.env.example`
 mirrors this table with placeholder values only — never real secrets.
 
-| Variable                  | Dev                               | Test                             | Production                                                     | Secret? | Configured where                                          |
-| ------------------------- | --------------------------------- | -------------------------------- | -------------------------------------------------------------- | ------- | --------------------------------------------------------- |
-| `NODE_ENV`                | `development` (default)           | `test`                           | `production` — required, gates every check below               | No      | Railway service variables                                 |
-| `DATABASE_URL`            | optional (routes unmount)         | not used by `pnpm test`          | **required** — fail-fast if missing                            | Yes     | Railway PostgreSQL plugin (auto-injected) or manual       |
-| `TEST_DATABASE_URL`       | optional                          | required for `pnpm test:db` only | not used                                                       | Yes     | local `.env.local` / CI secret, never production          |
-| `JWT_ACCESS_TOKEN_SECRET` | any 32+ byte string               | fixture value                    | **required**, 32+ random bytes                                 | Yes     | Railway service variables                                 |
-| `WEB_ORIGIN`              | `http://localhost:3000` (default) | fixture value                    | **required**, must not be the localhost default                | No      | Railway service variables (set to the real Vercel domain) |
-| `COOKIE_SAME_SITE`        | `Lax` (default)                   | `Lax`                            | `Lax` (preferred) or `None` (platform-default-domain fallback) | No      | Railway service variables                                 |
-| `PORT`                    | `8787` (default)                  | n/a                              | Railway-injected — do not set manually                         | No      | Railway (automatic)                                       |
-| `LOG_LEVEL`               | `info` (default)                  | `silent` (test setup)            | `info` (default); avoid `debug`/`trace` under load             | No      | Railway service variables                                 |
+| Variable                  | Dev                               | Test                             | Production                                                     | Secret? | Configured where                                                    |
+| ------------------------- | --------------------------------- | -------------------------------- | -------------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
+| `NODE_ENV`                | `development` (default)           | `test`                           | `production` — required, gates every check below               | No      | `render.yaml` (`value: production`)                                 |
+| `DATABASE_URL`            | optional (routes unmount)         | not used by `pnpm test`          | **required** — fail-fast if missing                            | Yes     | `render.yaml` (`fromDatabase`, resolves to the internal URL)        |
+| `TEST_DATABASE_URL`       | optional                          | required for `pnpm test:db` only | not used                                                       | Yes     | local `.env.local` / CI secret, never production                    |
+| `JWT_ACCESS_TOKEN_SECRET` | any 32+ byte string               | fixture value                    | **required**, 32+ random bytes                                 | Yes     | `render.yaml` (`generateValue: true`)                               |
+| `WEB_ORIGIN`              | `http://localhost:3000` (default) | fixture value                    | **required**, must not be the localhost default                | No      | `render.yaml` (`sync: false` — set manually once Vercel URL exists) |
+| `COOKIE_SAME_SITE`        | `Lax` (default)                   | `Lax`                            | `Lax` (preferred) or `None` (platform-default-domain fallback) | No      | `render.yaml` (`value: Lax`, edit before applying if using `None`)  |
+| `PORT`                    | `8787` (default)                  | n/a                              | Render-injected — do not set manually                          | No      | Render (automatic)                                                  |
+| `LOG_LEVEL`               | `info` (default)                  | `silent` (test setup)            | `info` (default); avoid `debug`/`trace` under load             | No      | `render.yaml` (`value: info`)                                       |
 
 `apps/web`:
 
@@ -96,14 +103,23 @@ behind that prefix.
 
 `packages/database/src/migrate.ts` is a standalone script
 (`DATABASE_URL` from the environment, `drizzle-orm/postgres-js/
-migrator`) — it is **not** run automatically on `apps/server` startup.
-Run it explicitly against the target database as a deploy step (e.g. a
-Railway pre-deploy/release command, or manually before the first
-deploy), never automatically against whatever `DATABASE_URL` happens
-to be set in an environment. A fresh database migrates cleanly from
-zero — verified in this repository against a disposable local
-PostgreSQL instance (`docker-compose.yml`); this has not been verified
-against an actual Railway PostgreSQL instance.
+migrator`) — it is **not** run automatically on `apps/server` startup,
+and `render.yaml` does not define a pre-deploy command that would run
+it either. Run it explicitly against the target database as a
+deliberate deploy step: from a local machine with `DATABASE_URL` (or
+Render's PostgreSQL **external** connection string, for a one-off
+migration run from outside Render's network) pointed at the Render
+Postgres instance —
+
+```
+DATABASE_URL=<render-postgres-external-url> pnpm --filter @bluemoon/database db:migrate
+```
+
+— never automatically against whatever `DATABASE_URL` happens to be
+set in an environment. A fresh database migrates cleanly from zero —
+verified in this repository against a disposable local PostgreSQL
+instance (`docker-compose.yml`); this has not been verified against an
+actual Render PostgreSQL instance.
 
 ## Docker Build (`apps/server`)
 
@@ -131,8 +147,16 @@ docker run -p 8787:8787 --env-file apps/server/.env bluemoon-server
    `apps/server` and its four dependencies. No source, no build
    tools, no dev dependencies. `NODE_ENV=production` is baked in;
    every other variable ([contract above](#production-environment-contract))
-   is supplied at `docker run`/Railway deploy time, never baked into
+   is supplied at `docker run`/Render deploy time, never baked into
    the image.
+
+Render builds this exact Dockerfile directly (`render.yaml`'s
+`runtime: docker`, `dockerfilePath: apps/server/Dockerfile`,
+`dockerContext: .` — the context must be the repository root, same
+requirement as the manual `docker build` command above, for the same
+pnpm/Turborepo workspace-graph reason). No changes were needed to the
+Dockerfile itself when the platform target moved from Railway to
+Render — see [ADR-0033](../adr/ADR-0033-adopt-render-for-backend-hosting.md).
 
 Verified locally (2026-08-15): the image builds successfully, starts
 against a real disposable PostgreSQL instance
@@ -149,10 +173,11 @@ how the server itself is deployed.
 ## WebSocket Requirements
 
 `/messaging/ws` needs a platform that supports long-lived WebSocket
-connections on the same process serving HTTP — Railway does (it's a
-regular long-running container, not a serverless function per
-request). This would **not** work unmodified on a serverless
-HTTP-function platform. See
+connections on the same process serving HTTP — Render's Web Services
+do (a regular long-running container with native WebSocket support on
+the same domain/port as HTTP, no special configuration required; see
+Render's own WebSocket documentation). This would **not** work
+unmodified on a serverless HTTP-function platform. See
 `docs/security/Messaging.md#websocket-production-hardening` for the
 origin-validation/max-payload/heartbeat/graceful-shutdown behavior
 that makes long-lived connections production-safe (stale-connection
@@ -172,14 +197,14 @@ frontend deployment, not a shared production value.
 
 `GET /health` returns `{ status: "ok" | "degraded", version,
 environment }` — `degraded` when `DATABASE_URL` is set but the
-database is unreachable. Point Railway's health check at this path
-(`railway.json` already does — `deploy.healthcheckPath`). Requires no
+database is unreachable. Render's health check is already pointed at
+this path (`render.yaml`'s `healthCheckPath: /health`). Requires no
 authentication, by design. Note what it does _not_ catch: since
 `DATABASE_URL` is now required in production (env.ts fails fast at
 startup instead), the previous "health says ok with zero routes
 mounted" failure mode described in ADR-0031 can no longer occur in a
 production deployment — a misconfigured deploy fails to start at all,
-which Railway surfaces as a failed deploy, not a passing health check
+which Render surfaces as a failed deploy, not a passing health check
 on a broken service.
 
 `registerHealthRoute` reuses the one connection pool `app.ts` already
@@ -192,7 +217,7 @@ few seconds would have exhausted `max_connections` on over time.
 
 ## Rollback
 
-No automated rollback tooling exists. Railway supports redeploying a
+No automated rollback tooling exists. Render supports redeploying a
 previous build from its dashboard; Vercel does the same for `apps/web`
 via its deployment history. A rollback that also needs a migration
 rolled back requires a manual, hand-written down-migration — Drizzle's
@@ -216,7 +241,7 @@ instance:
   (`infrastructure/messaging/`) — a user connected to instance A never
   receives a broadcast triggered on instance B.
 
-A single Railway service instance (the only configuration this
+A single Render service instance (the only configuration this
 codebase has actually been exercised against) is unaffected by either
 limitation.
 
@@ -224,9 +249,9 @@ limitation.
 
 Two distinct levels, not to be conflated:
 
-**1.1 Repository Deployment Ready — DONE (2026-08-15)**
+**1.1 Repository Deployment Ready — DONE (2026-08-15, updated 2026-08-16 for Render)**
 
-- `apps/server/Dockerfile` + `.dockerignore` + `railway.json` exist
+- `apps/server/Dockerfile` + `.dockerignore` + `render.yaml` exist
   and are documented above.
 - Production build verified: `docker build` succeeds from a clean
   checkout.
@@ -249,8 +274,8 @@ Two distinct levels, not to be conflated:
 **1.1 External Deployment Verified — NOT DONE**
 
 - No actual Vercel deployment has been performed.
-- No actual Railway deployment has been performed.
-- No actual managed PostgreSQL instance (Railway's or otherwise) has
+- No actual Render deployment has been performed.
+- No actual managed PostgreSQL instance (Render's or otherwise) has
   been used — only the local `docker-compose.yml` instance.
 - HTTPS/WSS have not been verified against real TLS termination (only
   `ws://`/`http://` locally — the code derives `wss:`/`https:` from
@@ -262,7 +287,7 @@ Two distinct levels, not to be conflated:
   locally-run dev servers, not this Docker image).
 
 **Repository deployment readiness verified locally; external
-Vercel/Railway deployment remains unverified.**
+Vercel/Render deployment remains unverified.**
 
 ## Known Limitations
 
@@ -271,20 +296,24 @@ Vercel/Railway deployment remains unverified.**
   shape; only the project's Root Directory setting needs to be
   `apps/web`, done in Vercel's dashboard, not a committed file.
 - This document has not been verified end-to-end against an actual
-  Railway + Vercel deployment — see Milestone 1.0 Completion Criteria
+  Render + Vercel deployment — see Milestone 1.0 Completion Criteria
   above for exactly what has and hasn't been verified.
 - CI (`.github/workflows/ci.yml`) has no deployment job and does not
   build the Docker image — lint, type-check, test, build only.
   Deploying remains a manual step on both platforms.
 - The Docker image has been built and run locally against a
-  disposable PostgreSQL instance, never against Railway's build
-  environment or Railway's own PostgreSQL plugin.
+  disposable PostgreSQL instance, never against Render's build
+  environment or Render's own PostgreSQL instance.
+- `render.yaml`'s `plan`/`region` values are placeholders (free tier,
+  `oregon`) — review and adjust before applying the Blueprint if the
+  intended deployment needs a different plan or region.
 
 ## Related Documents
 
-- [ADR-0012](../adr/ADR-0012-railway.md), [ADR-0013](../adr/ADR-0013-vercel.md) — platform selection
+- [ADR-0033](../adr/ADR-0033-adopt-render-for-backend-hosting.md) — adopting Render, superseding ADR-0012
+- [ADR-0012](../adr/ADR-0012-railway.md), [ADR-0013](../adr/ADR-0013-vercel.md) — original platform selection
 - [ADR-0031](../adr/ADR-0031-deployment-architecture.md) — cross-origin cookie/CORS/proxy-trust decisions
-- [ADR-0032](../adr/ADR-0032-server-docker-deployment.md) — Docker as the Railway build mechanism
+- [ADR-0032](../adr/ADR-0032-server-docker-deployment.md) — Docker as the build mechanism
 - [docs/security/Session-Management.md](../security/Session-Management.md) — cookie transport detail
 - [docs/security/Messaging.md](../security/Messaging.md) — WebSocket production hardening, rate limiting
 - [docs/engineering/environment-strategy.md](../engineering/environment-strategy.md) — env var conventions
