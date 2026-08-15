@@ -16,6 +16,16 @@
 # defaults (free tier, oregon) don't match the intended deployment —
 # this file is a starting point, not a finished production config.
 #
+# The Dockerfile lives at the REPOSITORY ROOT (not apps/server/) --
+# see docs/deployment/README.md's Troubleshooting section. This was
+# a deliberate move made after `dockerContext: ./` combined with a
+# dockerfilePath nested in apps/server/ repeatedly failed on Render
+# with COPY "not found" errors for every path outside apps/server/,
+# even after validating render.yaml against Render's own JSON Schema
+# and confirming the repository itself was correct at every layer.
+# Putting the Dockerfile at the root makes the build context correct
+# by construction, independent of whether dockerContext is honored.
+#
 # See docs/deployment/README.md and ADR-0033 for the full procedure
 # and the reasoning behind adopting Render over Railway.
 
@@ -28,7 +38,7 @@ services:
   - type: web
     name: bluemoon-server
     runtime: docker
-    dockerfilePath: ./apps/server/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: ./
     plan: free
     region: oregon

@@ -4,8 +4,16 @@
 # (config, database, types, utils) that must be built and present in
 # node_modules, not just apps/server's own source.
 #
+# Deliberately lives at the repository root, not apps/server/, so that
+# Render's Docker build context is trivially correct regardless of
+# whether its Blueprint dockerContext field is actually honored for a
+# Dockerfile nested in a subdirectory that COPYs siblings outside it --
+# see docs/deployment/README.md's Troubleshooting section for the full
+# investigation that led here. This file's own COPY paths are already
+# all relative to the repo root and needed no changes to move.
+#
 # Build from repo root:
-#   docker build -f apps/server/Dockerfile -t bluemoon-server .
+#   docker build -f Dockerfile -t bluemoon-server .
 # Run:
 #   docker run -p 8787:8787 --env-file apps/server/.env bluemoon-server
 
