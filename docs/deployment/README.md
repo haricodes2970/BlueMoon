@@ -225,6 +225,59 @@ repository):
 Either way, no code or Blueprint change is required — only the live
 service's configuration needs to match what's already committed.
 
+**Update, 2026-08-16 — same failure after deleting and recreating the
+service.** This ruled out the manually-created-service theory above,
+so the investigation went deeper, checking every layer between this
+repository and Render's build daemon rather than re-asserting the
+dashboard explanation:
+
+1. **Every path the Dockerfile references is actually in the pushed
+   commit.** `git ls-tree origin/main -- turbo.json packages/utils
+apps/server tooling/typescript-config ...` (all thirteen COPY
+   sources) confirmed present, at the exact commit `HEAD` and
+   `origin/main` both point to — not just present locally.
+2. **`render.yaml` is schema-valid.** Downloaded Render's own published
+   JSON Schema (`https://render.com/schema/render.yaml.json`) and
+   validated this repository's `render.yaml` against it with `ajv`
+   directly — passes with zero errors. This isn't a guess about field
+   names; it's Render's own machine-readable contract confirming
+   `dockerfilePath`/`dockerContext` are spelled, typed, and placed
+   correctly.
+3. **The field semantics are correctly understood**, confirmed three
+   independent ways (Render's docs prose, Render's own `render-docker`
+   Blueprint-authoring skill's example, and the JSON Schema's own
+   `description` strings) — all agree `dockerfilePath` and
+   `dockerContext` are each independently relative to the **repository
+   root**, exactly how this file uses them.
+4. **The Dockerfile itself is proven correct**, independent of Render,
+   by a clean `docker build --no-cache -f apps/server/Dockerfile .`
+   from repo root against that same commit.
+
+No defect was found in the repository at any of these four layers.
+Given that, and that recreating the service didn't change the outcome,
+the remaining explanation is outside what this repository controls —
+either a live-service/account state this investigation has no access
+to verify (e.g. the recreated service pointing at a different
+branch/fork, or a stale Blueprint sync not actually re-reading the
+latest commit), or a Render platform-side limitation in how its
+BuildKit git-context construction handles a Dockerfile nested in a
+subdirectory whose `COPY` instructions reach outside that subdirectory
+via `dockerContext`. As a zero-risk hardening step (not a confirmed
+fix — nothing reproduces locally to test against), `dockerfilePath`
+and `dockerContext` were changed to `./apps/server/Dockerfile` and
+`./` respectively, matching Render's own documented example's
+explicit-`./`-prefix style byte-for-byte, in case there's a path-join
+edge case around a bare `.` or an unprefixed relative path. Re-verified
+schema-valid and rebuilds clean after the change.
+
+**If this still fails on Render**, the next step is Render support
+directly, with this evidence attached: commit SHA
+`798641850a0dd8f77794825076c8924f3f903f86`, the `ajv` schema-validation
+pass, and the `git ls-tree origin/main` output proving every referenced
+path exists in the deployed commit — not further repository changes,
+since none of the four verification layers above found anything left
+to fix here.
+
 ## WebSocket Requirements
 
 `/messaging/ws` needs a platform that supports long-lived WebSocket
