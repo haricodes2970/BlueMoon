@@ -1,0 +1,65 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Defines apps/server as a Docker web service plus its PostgreSQL
+# database. `fromDatabase: {property: connectionString}` resolves to
+# Render's *internal* connection string automatically when both are
+# in the same Render project/region — traffic between them never
+# leaves Render's private network, satisfying the "internal
+# DATABASE_URL" requirement without any manual wiring.
+#
+# apps/web is NOT defined here — it deploys separately on Vercel (see
+# docs/deployment/README.md); Render Blueprints only manage
+# Render-hosted services.
+#
+# Apply via Render's dashboard: "New" -> "Blueprint" -> select this
+# repository. Adjust `plan`/`region` below before applying if the
+# defaults (free tier, oregon) don't match the intended deployment —
+# this file is a starting point, not a finished production config.
+#
+# See docs/deployment/README.md and ADR-0033 for the full procedure
+# and the reasoning behind adopting Render over Railway.
+
+databases:
+  - name: bluemoon-postgres
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: bluemoon-server
+    runtime: docker
+    dockerfilePath: apps/server/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bluemoon-postgres
+          property: connectionString
+      # 32+ random bytes, generated once by Render on first deploy --
+      # never entered manually, never visible in this file. Rotating
+      # it (e.g. after a suspected leak) requires updating it in the
+      # Render dashboard directly, which also revokes every existing
+      # access token signed with the old value.
+      - key: JWT_ACCESS_TOKEN_SECRET
+        generateValue: true
+      # Not a secret, but not knowable until the Vercel deployment
+      # exists -- sync: false prompts for it in the Render dashboard
+      # instead of hardcoding a placeholder here. Set to the real
+      # deployed apps/web origin, e.g. https://app.example.com.
+      - key: WEB_ORIGIN
+        sync: false
+      # "Lax" is correct only if apps/web and this service share a
+      # registrable domain (custom subdomains under one apex) --
+      # change to "None" if deploying on Render's/Vercel's default
+      # domains instead. See docs/deployment/README.md#two-supported-domain-shapes.
+      - key: COOKIE_SAME_SITE
+        value: Lax
+      - key: LOG_LEVEL
+        value: info
+    # PORT is Render-injected automatically -- do not set it here;
+    # apps/server already reads process.env.PORT via loadServerEnv().
