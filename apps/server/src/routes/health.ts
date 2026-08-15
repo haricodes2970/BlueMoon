@@ -1,5 +1,5 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi";
-import { checkDatabaseConnection, createDatabase } from "@bluemoon/database";
+import { checkDatabaseConnection, type Database } from "@bluemoon/database";
 import { ENVIRONMENTS } from "@bluemoon/types";
 import type { HealthCheckResponse } from "@bluemoon/types";
 import { appVersion } from "../version.js";
@@ -23,12 +23,21 @@ const healthRoute = createRoute({
   },
 });
 
-export function registerHealthRoute(app: OpenAPIHono, env: ServerEnv): void {
+/**
+ * `db` is the same shared connection pool app.ts builds once for
+ * Identity/Social/Messaging (or null if DATABASE_URL isn't set) --
+ * never opens its own, which would otherwise leak a new Postgres
+ * connection pool on every poll from a platform health checker.
+ */
+export function registerHealthRoute(
+  app: OpenAPIHono,
+  env: ServerEnv,
+  db: Database | null,
+): void {
   app.openapi(healthRoute, async (c) => {
     let status: HealthCheckResponse["status"] = "ok";
 
-    if (env.DATABASE_URL) {
-      const db = createDatabase(env.DATABASE_URL);
+    if (db) {
       const connected = await checkDatabaseConnection(db);
       if (!connected) status = "degraded";
     }

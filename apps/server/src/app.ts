@@ -55,15 +55,17 @@ export function createApp(
   app.use("*", cors({ origin: env.WEB_ORIGIN, credentials: true }));
   app.onError(errorHandler);
 
-  registerHealthRoute(app, env);
-
-  // Identity and Social share one Drizzle client/connection pool when
-  // built from DATABASE_URL -- built at most once here, never per
-  // container, so mounting both domains doesn't double the pool.
+  // Identity, Social, and Messaging (plus the health check below) all
+  // share this one Drizzle client/connection pool when built from
+  // DATABASE_URL -- built at most once here, never per container or
+  // per request, so mounting every domain and polling /health
+  // repeatedly doesn't multiply the pool.
   const db =
     options.identityContainer || !env.DATABASE_URL
       ? null
       : createDatabase(env.DATABASE_URL);
+
+  registerHealthRoute(app, env, db);
 
   const identityContainer =
     options.identityContainer ??
