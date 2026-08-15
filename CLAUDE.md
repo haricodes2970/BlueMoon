@@ -57,7 +57,13 @@ E2EE) remains entirely unimplemented and unscheduled.
 **Milestone 1.0 — Deployment Readiness & Production Verification** (repository readiness complete; external deployment unverified)
 
 `apps/server` is now genuinely deployable: a production `Dockerfile`
-(three-stage, `apps/server/Dockerfile`), `.dockerignore`, and a
+(three-stage, at the **repository root** — moved from
+`apps/server/Dockerfile` on 2026-08-16 after Render's Docker builder
+repeatedly failed to use the repo root as build context for a
+Dockerfile nested in `apps/server/`, despite `render.yaml` being
+schema-valid and every referenced path confirmed present in the pushed
+commit; see `docs/deployment/README.md`'s Troubleshooting section for
+the full investigation), `.dockerignore`, and a
 `render.yaml` Blueprint (web service + PostgreSQL, internal
 `DATABASE_URL` auto-wired via `fromDatabase`) exist — see
 [ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md) for why
@@ -533,6 +539,50 @@ change-credential,trust-device}`, `DELETE /auth/trust-device/:id`,
       `TODO.md`, `CHANGELOG.md`, `DECISIONS.md` (ADR-0033 indexed,
       ADR-0012 status updated), Engineering Journal
 
+**Milestone 1.0 — Render Docker Build-Context Fix: Dockerfile Moved to Repository Root (2026-08-16)**
+
+- [x] Real Render deploy attempts (including a full service delete and
+      recreate via Blueprint) repeatedly failed with `COPY ... not
+found` for every path outside `apps/server/`, even though
+      `render.yaml` was schema-valid against Render's own published
+      JSON Schema (validated with `ajv`), every referenced path was
+      confirmed present in the exact pushed commit via `git ls-tree
+origin/main`, and `docker build --no-cache -f
+apps/server/Dockerfile .` succeeded locally every time — four
+      independent verification layers found no repository defect, yet
+      the failure persisted after recreation, which ruled out a stale
+      dashboard/service-config explanation
+- [x] `Dockerfile` moved from `apps/server/Dockerfile` to the
+      repository root (`git mv`, zero internal `COPY` path changes
+      needed — every path in it was already relative to repo root);
+      `render.yaml`'s `dockerfilePath` updated to `./Dockerfile`. This
+      makes the build context correct by construction — Dockerfile's
+      own directory is now the repo root — independent of whether
+      Render's builder actually honors a `dockerContext` field
+      pointing outside a nested Dockerfile's directory, which the
+      empirical evidence suggests it may not
+- [x] Re-verified after the move: `docker build --no-cache -f
+Dockerfile .` clean; production container against a disposable
+      PostgreSQL instance passes `/health`; the full golden path
+      (register both users → login → BlueMoon Token → friendship → WS
+      tickets → WebSocket connect for both → conversation → message
+      sent by one delivered live to the other over WS → retrievable
+      via HTTP history → `POST /auth/refresh` → logout) scripted and
+      run end-to-end against the relocated Dockerfile's container,
+      all steps passed
+- [x] Full quality gate green; `pnpm test` unchanged at 81/81,
+      `pnpm test:db` unchanged at 67/67
+- [x] **Still not externally verified against a real Render
+      deployment** — this fix is evidence-based (proven correct by
+      construction and by every local reproduction available) but
+      whether it resolves Render's actual build behavior can only be
+      confirmed by an actual Render deploy, which remains outside this
+      environment's access
+- [x] Docs updated: `render.yaml`, `Dockerfile` header comment,
+      `docs/deployment/README.md` (Troubleshooting section resolution,
+      Docker Build section paths), this file, `ADR-0032` (status-line
+      amendment only, body unchanged)
+
 ## Engineering Principles
 
 - Optimize for maintainability, scalability, readability, security, and
@@ -704,7 +754,8 @@ Limitations for what each of the last two means in practice).
   hardening were added in the 2026-08-13 production-hardening pass —
   see [Messaging.md](./docs/security/Messaging.md#rate-limiting) and
   [ADR-0031](./docs/adr/ADR-0031-deployment-architecture.md).
-  `apps/server/Dockerfile` and a `render.yaml` Blueprint now exist and
+  `Dockerfile` (repository root, moved from `apps/server/Dockerfile`
+  2026-08-16) and a `render.yaml` Blueprint now exist and
   have been verified with a real local `docker build`/`docker run`
   against a disposable PostgreSQL instance
   ([ADR-0032](./docs/adr/ADR-0032-server-docker-deployment.md),

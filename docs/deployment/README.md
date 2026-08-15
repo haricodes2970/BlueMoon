@@ -10,8 +10,10 @@ choice; the underlying Docker mechanism itself is unchanged, see
 has no `vercel.json` — Vercel's native Next.js monorepo support (Root
 Directory = `apps/web` in project settings) needs no custom
 configuration. `apps/server` has a production `Dockerfile`
-(`apps/server/Dockerfile`, unchanged from the Railway-targeted
-version) and a `render.yaml` Blueprint at the repository root defining
+(repository root — moved from `apps/server/Dockerfile` 2026-08-16, see
+the Troubleshooting section below; content unchanged from the
+Railway-targeted version) and a `render.yaml` Blueprint at the
+repository root defining
 both the web service and the PostgreSQL database — see
 [ADR-0033](../adr/ADR-0033-adopt-render-for-backend-hosting.md) for
 why a Blueprint was chosen (primarily: it wires `DATABASE_URL` to
@@ -130,14 +132,15 @@ actual Render PostgreSQL instance.
 
 ## Docker Build (`apps/server`)
 
-`apps/server/Dockerfile` is a three-stage build, run from the
-**repository root** (not `apps/server/`) so the pnpm workspace and
+`Dockerfile` (repository root — see the Troubleshooting entry below
+for why it lives here and not under `apps/server/`) is a three-stage
+build, run from the **repository root** so the pnpm workspace and
 Turborepo graph resolve correctly — `apps/server` depends on four
 workspace packages (`config`, `database`, `types`, `utils`) that must
 be built and present in `node_modules`, not just its own source:
 
 ```
-docker build -f apps/server/Dockerfile -t bluemoon-server .
+docker build -f Dockerfile -t bluemoon-server .
 docker run -p 8787:8787 --env-file apps/server/.env bluemoon-server
 ```
 
@@ -158,12 +161,13 @@ docker run -p 8787:8787 --env-file apps/server/.env bluemoon-server
    the image.
 
 Render builds this exact Dockerfile directly (`render.yaml`'s
-`runtime: docker`, `dockerfilePath: apps/server/Dockerfile`,
-`dockerContext: .` — the context must be the repository root, same
-requirement as the manual `docker build` command above, for the same
-pnpm/Turborepo workspace-graph reason). No changes were needed to the
-Dockerfile itself when the platform target moved from Railway to
-Render — see [ADR-0033](../adr/ADR-0033-adopt-render-for-backend-hosting.md).
+`runtime: docker`, `dockerfilePath: ./Dockerfile`, `dockerContext: ./`
+— the context must be the repository root, same requirement as the
+manual `docker build` command above, for the same pnpm/Turborepo
+workspace-graph reason). No changes were needed to the Dockerfile's
+_content_ when the platform target moved from Railway to Render — see
+[ADR-0033](../adr/ADR-0033-adopt-render-for-backend-hosting.md) — but
+its _location_ did change on 2026-08-16; see Troubleshooting below.
 
 Verified locally (2026-08-15): the image builds successfully, starts
 against a real disposable PostgreSQL instance
@@ -277,6 +281,45 @@ pass, and the `git ls-tree origin/main` output proving every referenced
 path exists in the deployed commit — not further repository changes,
 since none of the four verification layers above found anything left
 to fix here.
+
+**Update, 2026-08-16 (same day) — the `./`-prefix hardening didn't
+resolve it either.** The failure recurred, still on paths outside
+`apps/server/` (most recently `tooling/typescript-config`). At this
+point every angle available from inside this repository had been
+checked and found correct — the `./`-prefix change was explicitly
+labeled "not a confirmed fix" above because nothing local could
+actually test a bare `.` vs. `./`-prefixed path against Render's
+builder, and that prediction held.
+
+Rather than continue adjusting `dockerContext` values that can't be
+tested locally, the fix changed the one thing that removes
+`dockerContext` from the equation entirely: **`Dockerfile` moved from
+`apps/server/Dockerfile` to the repository root** (`git mv`, zero
+internal `COPY` path changes — every path in it was already relative
+to repo root, independent of where the file itself lives).
+`render.yaml`'s `dockerfilePath` became `./Dockerfile`. This mirrors
+Render's own documented monorepo example
+(`docs/monorepo-support`, `rootDir: community/docker` +
+`dockerfilePath: ./Dockerfile` — the Dockerfile always sits _at_ the
+directory Render treats as build root in every example Render
+publishes) rather than relying on `dockerContext` reaching outside a
+nested Dockerfile's own directory, which the repeated failures across
+two separate service recreations suggest Render's builder does not
+reliably honor for this configuration shape.
+
+Re-verified after the move: `docker build --no-cache -f Dockerfile .`
+clean from repo root; the resulting production container passes
+`/health` against a disposable PostgreSQL instance; the full golden
+path (register both users → login → BlueMoon Token → friendship → WS
+tickets for both → WebSocket connect for both → conversation → message
+sent by one delivered live to the other over WS → retrievable via HTTP
+history → `POST /auth/refresh` → logout) was scripted and run
+end-to-end against the relocated Dockerfile's container, every step
+passed. This is still not proof Render itself will now build
+successfully — that can only be confirmed by an actual Render deploy,
+which remains outside what this environment can verify — but it
+removes the specific mechanism (`dockerContext` reliability) every
+prior failure was consistent with.
 
 ## WebSocket Requirements
 

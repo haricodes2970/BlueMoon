@@ -1,7 +1,7 @@
 # ADR-0032: Docker as the Railway Build Mechanism for apps/server
 
 - **Date:** 2026-08-15
-- **Status:** Accepted (platform target changed from Railway to Render by [ADR-0033](./ADR-0033-adopt-render-for-backend-hosting.md), 2026-08-16 — the Docker build mechanism itself, and every reason given below for choosing Docker over a zero-config buildpack, is unaffected: Render builds and runs an arbitrary Dockerfile exactly as Railway does, so the same three-stage `apps/server/Dockerfile` is reused unmodified)
+- **Status:** Accepted (platform target changed from Railway to Render by [ADR-0033](./ADR-0033-adopt-render-for-backend-hosting.md), 2026-08-16 — the Docker build mechanism itself, and every reason given below for choosing Docker over a zero-config buildpack, is unaffected: Render builds and runs an arbitrary Dockerfile exactly as Railway does. **Update, 2026-08-16 (same day):** the Dockerfile's _location_ changed — moved from `apps/server/Dockerfile` to the repository root after real Render deploys repeatedly failed to use the repo root as build context for a Dockerfile nested in `apps/server/`, despite `render.yaml` being schema-valid and every referenced path confirmed present in the pushed commit (see `docs/deployment/README.md`'s Troubleshooting section). The file's content and every reason below for it existing are unchanged; only where it lives moved, so Render's build context is correct by construction regardless of whether it honors a `dockerContext` field pointing outside a nested Dockerfile's own directory.)
 
 ## Context
 
