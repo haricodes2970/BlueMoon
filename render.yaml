@@ -47,18 +47,20 @@ services:
       # access token signed with the old value.
       - key: JWT_ACCESS_TOKEN_SECRET
         generateValue: true
-      # Not a secret, but not knowable until the Vercel deployment
-      # exists -- sync: false prompts for it in the Render dashboard
-      # instead of hardcoding a placeholder here. Set to the real
-      # deployed apps/web origin, e.g. https://app.example.com.
+      # Not a secret -- the real deployed apps/web origin (Vercel's
+      # default *.vercel.app domain; no custom domain configured).
+      # Must exactly match what the browser sends as Origin, scheme
+      # included.
       - key: WEB_ORIGIN
-        sync: false
-      # "Lax" is correct only if apps/web and this service share a
-      # registrable domain (custom subdomains under one apex) --
-      # change to "None" if deploying on Render's/Vercel's default
-      # domains instead. See docs/deployment/README.md#two-supported-domain-shapes.
+        value: https://blue-moon-web-zeta.vercel.app
+      # apps/web (*.vercel.app) and this service (*.onrender.com) are
+      # different registrable domains -- the "platforms' default
+      # domains" fallback in
+      # docs/deployment/README.md#two-supported-domain-shapes applies,
+      # so the refresh cookie must be SameSite=None (requires
+      # NODE_ENV=production, set above, since None also forces Secure).
       - key: COOKIE_SAME_SITE
-        value: Lax
+        value: None
       - key: LOG_LEVEL
         value: info
     # PORT is Render-injected automatically -- do not set it here;
