@@ -21,7 +21,7 @@
     "@bluemoon/eslint-config": "workspace:*",
     "@bluemoon/prettier-config": "workspace:*",
     "@commitlint/cli": "^19.0.0",
-    "@commitlint/config-conventional": "^19.0.0",
+    "@commitlint/config-conventional": "^21.2.0",
     "eslint": "^9.15.0",
     "husky": "^9.0.0",
     "lint-staged": "^15.0.0",
