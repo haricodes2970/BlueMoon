@@ -14,6 +14,6 @@
     "@bluemoon/eslint-config": "workspace:*",
     "eslint": "^9.15.0",
     "@bluemoon/typescript-config": "workspace:*",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   }
 }
